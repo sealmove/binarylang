@@ -726,7 +726,6 @@ proc createReadField(sym: NimNode, f: Field, bs: NimNode, st: var seq[string], p
       let
         loopIdx = ident"i"
         tmp = quote do: `sym`[`loopIdx`]
-      expr.replaceWith(ident"i", loopIdx)
       let readStmt = createReadStatement(tmp, bs, f, st, params)
       result.add(quote do:
         `sym` = newSeq[`impl`](`expr`)
