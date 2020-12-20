@@ -168,11 +168,7 @@
 ## - ``magic``: enclose name with ``{}`` and use assertion with
 ##   your **next** field
 ##
-## In until repetition you can use 3 special symbols:
-##
-## - ``e``: means 'last element read'
-## - ``i``: means 'current loop index'
-## - ``s``: means 'stream'
+## In until repetition you can use the implicitly defined symbol ``e`` to get last element read.
 ##
 ## .. code:: nim
 ##
@@ -313,9 +309,9 @@
 ## - Nim expressions may contain:
 ##    - a previously defined field
 ##    - a parser parameter
-##    - the ``e`` symbol if it's a repetition until expression
-##    - the ``i`` symbol if it's a repetition until expression
-##    - the ``s`` symbol if it's a repetition until or assertion expression
+##    - the ``e`` symbol for getting the last element read in a repetition
+##    - the ``i`` symbol for current index in a repetition
+##    - the ``s`` symbol for accessing the bitstream
 ##
 ## These last 3 symbols might conflict with your variables or fields, so you
 ## shouldn't use them for something else.
@@ -399,6 +395,9 @@ proc prefixFields(node: var NimNode, st, params: seq[string], with: NimNode) =
   if node.kind == nnkIdent:
     if node.strVal in st and node.strVal notin params:
       node = newDotExpr(with, node)
+  elif node.kind == nnkDotExpr:
+    var n = node[1]
+    prefixFields(n, st, params, with)
   else:
     var i = 0
     while i < len(node):
@@ -725,9 +724,10 @@ proc createReadField(sym: NimNode, f: Field, bs: NimNode, st: var seq[string], p
     case f.val.repeat
     of rFor:
       let
-        loopIdx = genSym(nskForVar)
+        loopIdx = ident"i"
         tmp = quote do: `sym`[`loopIdx`]
-        readStmt = createReadStatement(tmp, bs, f, st, params)
+      expr.replaceWith(ident"i", loopIdx)
+      let readStmt = createReadStatement(tmp, bs, f, st, params)
       result.add(quote do:
         `sym` = newSeq[`impl`](`expr`)
         for `loopIdx` in 0 ..< int(`expr`):
@@ -735,22 +735,22 @@ proc createReadField(sym: NimNode, f: Field, bs: NimNode, st: var seq[string], p
     of rUntil:
       let
         tmp = genSym(nskVar)
-        loopIdx = genSym(nskVar)
+        loopIdx = ident"i"
       expr.replaceWith(ident"e", tmp)
-      expr.replaceWith(ident"i", loopIdx)
       expr.replaceWith(ident"s", bs)
       let readStmt = createReadStatement(tmp, bs, f, st, params)
       result.add (quote do:
-        `sym` = newSeq[`impl`]()
-        var
-          `loopIdx`: int
-          `tmp`: `impl`
-        while true:
-          `readStmt`
-          `sym`.add(`tmp`)
-          inc `loopIdx`
-          if `expr`:
-            break)
+        block:
+          `sym` = newSeq[`impl`]()
+          var
+            `loopIdx`: int
+            `tmp`: `impl`
+          while true:
+            `readStmt`
+            `sym`.add(`tmp`)
+            inc `loopIdx`
+            if `expr`:
+              break)
     else: discard
 
 proc createWriteField(f: Field, bs: NimNode, st: var seq[string], params: seq[string]): NimNode =
@@ -786,19 +786,19 @@ proc createWriteField(f: Field, bs: NimNode, st: var seq[string], params: seq[st
         quote do:
           var `tmp` = `elem`)
     let
+      loopIdx = ident"i"
       loopElem = genSym(nskForVar)
       writeStmt = createWriteStatement(f, loopElem, bs, st, params)
     writeStmts.add(quote do:
-      for `loopElem` in `tmp`:
+      for `loopIdx`, `loopElem` in `tmp`:
         `writeStmt`)
   of rUntil:
     var expr = f.val.repeatExpr.copyNimTree
     expr.prefixFields(st, params, input)
     let
       sym = genSym(nskForVar)
-      loopIdx = genSym(nskForVar)
+      loopIdx = ident"i"
     expr.replaceWith(ident"e", sym)
-    expr.replaceWith(ident"i", loopIdx)
     expr.replaceWith(ident"s", bs)
     writeStmts.add(
       if field == "":

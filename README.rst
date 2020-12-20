@@ -170,11 +170,7 @@ There are 3 ways to produce a ``seq`` of your ``Type``:
 - ``magic``: enclose name with ``{}`` and use assertion with
   your **next** field
 
-In until repetition you can use 3 special symbols:
-
-- ``e``: means 'last element read'
-- ``i``: means 'current loop index'
-- ``s``: means 'stream'
+In until repetition you can use the implicitly defined symbol ``e`` to get last element read.
 
 .. code:: nim
 
@@ -315,9 +311,9 @@ Special notes
 - Nim expressions may contain:
    - a previously defined field
    - a parser parameter
-   - the ``e`` symbol if it's a repetition until expression
-   - the ``i`` symbol if it's a repetition until expression
-   - the ``s`` symbol if it's a repetition until or assertion expression
+   - the ``e`` symbol for getting the last element read in a repetition
+   - the ``i`` symbol for current index in a repetition
+   - the ``s`` symbol for accessing the bitstream
 
 These last 3 symbols might conflict with your variables or fields, so you
 shouldn't use them for something else.

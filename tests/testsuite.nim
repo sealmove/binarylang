@@ -129,7 +129,10 @@ suite "Assertions":
     check data == outer.get(sbs)
 
 suite "Repetition":
+  createParser(inner, size: int):
+    8: x[size]
   createParser(p):
+    *inner(i+1): complex[3]
     8: size
     4: nibbles[size]
     8: bytes{e == 2}
@@ -142,6 +145,8 @@ suite "Repetition":
   except:
     echo getCurrentExceptionMsg()
     fail()
+  test "complex":
+    check data.complex == @[(@[1'i8],), (@[2'i8, 3],), (@[4'i8, 5, 6],)]
   test "for":
     check data.nibbles == @[0'i8, 1, 2, 3]
   test "until":
