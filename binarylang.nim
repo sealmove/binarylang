@@ -397,10 +397,8 @@ proc getImpl(typ: Type): NimNode =
 
 proc prefixFields(node: var NimNode, st, params: seq[string], with: NimNode) =
   if node.kind == nnkIdent:
-    if node.strVal in st:
+    if node.strVal in st and node.strVal notin params:
       node = newDotExpr(with, node)
-  elif node.kind == nnkDotExpr and node[0].strVal in params:
-    return
   else:
     var i = 0
     while i < len(node):
@@ -412,13 +410,13 @@ proc prefixFields(node: var NimNode, st, params: seq[string], with: NimNode) =
 proc getCustomReader(typ: Type, bs: NimNode, st, params: seq[string]): NimNode =
   result = newCall(nnkDotExpr.newTree(typ.symbol, ident"get"), bs)
   for arg in typ.args:
-    result.add(arg)
+    result.add(arg.copyNimTree)
   result.prefixFields(st, params, ident"result")
 
 proc getCustomWriter(typ: Type, bs: NimNode, st, params: seq[string]): NimNode =
   result = newCall(nnkDotExpr.newTree(typ.symbol, ident"put"), bs)
   for arg in typ.args:
-    result.add(arg)
+    result.add(arg.copyNimTree)
   result.prefixFields(st, params, ident"input")
 
 proc replaceWith(node: var NimNode; what, with: NimNode) =
@@ -877,7 +875,7 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
           rf = createReadField(sym, f, ss, fieldsSymbolTable, paramsSymbolTable)
         reader.add(quote do:
           var
-            `ss` = createSubstream(`bs`, `size`)
+            `ss` = createSubstream(`bs`, int(`size`))
             `sym`: `impl`
           `rf`)
         if value != nil:
@@ -969,10 +967,10 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
           ss = genSym(nskVar)
           wf = createWriteField(f, ss, fieldsSymbolTable, paramsSymbolTable)
         writer.add(quote do:
-          var `ss` = newPaddedBitStream(`size`)
+          var `ss` = newPaddedBitStream(int(`size`))
           `wf`
           `ss`.seek(0)
-          `bs`.writeFromSubstream(`ss`, `size`))
+          `bs`.writeFromSubstream(`ss`, int(`size`)))
       else:
         writer.add createWriteField(f, bs, fieldsSymbolTable, paramsSymbolTable)
   let
