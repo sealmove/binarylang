@@ -680,27 +680,22 @@ proc createWriteStatement(f: Field, sym, bs: NimNode, st, params: seq[string]): 
       result.add(quote do:
         `procUnaligned`(`bs`, `sizeNode`, 0))
     else:
-      let tmp = genSym(nskVar)
-      result.add(quote do:
-        var `tmp` = `sym`)
       if size in {8, 16, 32, 64}:
         let procAligned = ident("write" & endian & "e")
         result.add(quote do:
           if isAligned(`bs`):
-            `procAligned`(`bs`, `impl`(`tmp`))
+            `procAligned`(`bs`, `impl`(`sym`))
           else:
-            `procUnaligned`(`bs`, `sizeNode`, `tmp`, `endianNode`))
+            `procUnaligned`(`bs`, `sizeNode`, `sym`, `endianNode`))
       else:
-        result.add(quote do: `procUnaligned`(`bs`, `sizeNode`, `tmp`, `endianNode`))
+        result.add(quote do: `procUnaligned`(`bs`, `sizeNode`, `sym`, `endianNode`))
   of kStr:
     result.add(quote do:
       if not isAligned(`bs`):
         raise newException(IOError, "Stream must be aligned to write a string"))
     if sym != nil:
-      let tmp = genSym(nskVar)
       result.add(quote do:
-        var `tmp` = `sym`
-        writeStr(`bs`, `tmp`))
+        writeStr(`bs`, `sym`))
     if f.val.valueExpr == nil and (f.magic == nil or f.val.isMagic):
       result.add(quote do:
         writeBe(`bs`, 0'u8))
@@ -752,67 +747,42 @@ proc createReadField(sym: NimNode; f: Field; bs: NimNode; st, params: seq[string
               break)
     else: discard
 
-proc createWriteField(f: Field; bs: NimNode; st, params: seq[string]): NimNode =
+proc createWriteField(sym: NimNode; f: Field; bs: NimNode; st, params: seq[string]): NimNode =
   result = newStmtList()
   let
     field = f.val.name
     fieldIdent = ident(field)
     input = ident"input"
-    tmp = genSym(nskVar)
-    impl = f.typ.getImpl
     elem = if f.val.isMagic: genSym(nskForVar)
-           else: quote do: `input`.`fieldIdent`
+           else: sym
   var value = f.val.valueExpr
   value.prefixFields(st, params, input)
   var writeStmts = newStmtList()
   case f.val.repeat
   of rNo:
-    let sym = if field == "": (if value == nil: nil else: value)
-              else: quote do: `elem`
-    writeStmts.add createWriteStatement(f, sym, bs, st, params)
+    writeStmts.add createWriteStatement(f, elem, bs, st, params)
   of rFor:
     var expr = f.val.repeatExpr.copyNimTree
     expr.prefixFields(st, params, input)
-    writeStmts.add(
-      if field == "":
-        if value == nil:
-          quote do:
-            var `tmp` = newSeq[`impl`](`expr`)
-        else:
-          quote do:
-            var `tmp` = `value`
-      else:
-        quote do:
-          var `tmp` = `elem`)
     let
       loopIdx = ident"i"
       loopElem = genSym(nskForVar)
       writeStmt = createWriteStatement(f, loopElem, bs, st, params)
     writeStmts.add(quote do:
-      for `loopIdx`, `loopElem` in `tmp`:
+      for `loopIdx`, `loopElem` in `elem`:
         `writeStmt`)
   of rUntil:
     var expr = f.val.repeatExpr.copyNimTree
     expr.prefixFields(st, params, input)
     let
-      sym = genSym(nskForVar)
+      forSym = genSym(nskForVar)
       loopIdx = ident"i"
-    expr.replaceWith(ident"e", sym)
+    expr.replaceWith(ident"e", elem)
     expr.replaceWith(ident"s", bs)
-    writeStmts.add(
-      if field == "":
-        if value == nil:
-          quote do:
-            var `tmp` = newSeq[`impl`](`expr`)
-        else:
-          quote do:
-            var `tmp` = `value`
-      else:
-        quote do:
-          var `tmp` = `elem`)
-    let writeStmt = createWriteStatement(f, sym, bs, st, params)
+    let writeStmt = createWriteStatement(f, forSym, bs, st, params)
     writeStmts.add(quote do:
-      for `loopIdx`, `sym` in `tmp`: `writeStmt`)
+      for `loopIdx`, `forSym` in `elem`:
+        `writeStmt`)
   if f.val.isMagic:
     result.add(quote do:
       for `elem` in `input`.`fieldIdent`:
@@ -907,7 +877,7 @@ proc generateRead(sym: NimNode; f: Field; bs: NimNode, st, params: seq[string]):
           raise newException(MagicError, "field '" & $`field` & "' was " &
                             $`sym` & " instead of " & $`value`))
 
-proc generateWrite(f: Field; bs: NimNode, st, params: seq[string]): NimNode =
+proc generateWrite(sym: NimNode; f: Field; bs: NimNode, st, params: seq[string]): NimNode =
   result = newStmtList()
   let input = ident"input"
   if f.val.sizeExpr != nil:
@@ -915,14 +885,14 @@ proc generateWrite(f: Field; bs: NimNode, st, params: seq[string]): NimNode =
     size.prefixFields(st, st, input)
     let
       ss = genSym(nskVar)
-      wf = createWriteField(f, ss, st, params)
+      wf = createWriteField(sym, f, ss, st, params)
     result.add(quote do:
       var `ss` = newPaddedBitStream(int(`size`))
       `wf`
       `ss`.seek(0)
       `bs`.writeFromSubstream(`ss`, int(`size`)))
   else:
-    result.add createWriteField(f, bs, st, params)
+    result.add createWriteField(sym, f, bs, st, params)
 
 macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
   ## The main macro in this module. It takes the ``name`` of the tuple to
@@ -938,6 +908,7 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
     writer = newStmtList()
   let
     bs = ident"s"
+    res = ident"result"
     input = ident"input"
     (params, parserOptions) = decodeHeader(rest[0 .. ^2])
     paramsSymbolTable = collect(newSeq):
@@ -955,6 +926,8 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
       fields[i].magic = fields[i+1]
   for f in fields:
     let
+      rSym = genSym(nskVar)
+      wSym = genSym(nskVar)
       field = f.val.name
       fieldIdent = ident(field)
     var impl = f.typ.getImpl
@@ -962,25 +935,33 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
       impl = quote do: seq[`impl`]
     if f.val.isMagic:
       impl = quote do: seq[`impl`]
-    let sym = genSym(nskVar)
     reader.add(quote do:
-      var `sym`: `impl`)
+      var `rSym`: `impl`)
+    let value = if field == "": (if f.val.valueExpr == nil: nil else: f.val.valueExpr)
+                else: quote do: `input`.`fieldIdent`
+    writer.add(
+      if value == nil:
+        quote do:
+          var `wSym`: `impl`
+      else:
+        quote do:
+          var `wSym` = `value`)
     var
-      read = generateRead(sym, f, bs, fieldsSymbolTable, paramsSymbolTable)
-      write = generateWrite(f, bs, fieldsSymbolTable, paramsSymbolTable)
+      read = generateRead(rSym, f, bs, fieldsSymbolTable, paramsSymbolTable)
+      write = generateWrite(wSym, f, bs, fieldsSymbolTable, paramsSymbolTable)
     for k, v in f.opts:
       var rV = v.copyNimTree
-      rV.prefixFields(fieldsSymbolTable, paramsSymbolTable, ident"result")
-      read = newCall(ident(k & "get"), read, rV)
+      rV.prefixFields(fieldsSymbolTable, paramsSymbolTable, res)
+      read = newCall(ident(k & "get"), rSym, read, rV)
       var wV = v.copyNimTree
-      wV.prefixFields(fieldsSymbolTable, paramsSymbolTable, ident"input")
-      write = newCall(ident(k & "put"), write, wV)
+      wV.prefixFields(fieldsSymbolTable, paramsSymbolTable, input)
+      write = newCall(ident(k & "put"), wSym, write, wV)
     reader.add(read)
     writer.add(write)
     if field != "":
       tupleMeat.add(newIdentDefs(fieldIdent, impl))
       reader.add(quote do:
-        result.`fieldIdent` = `sym`)
+        result.`fieldIdent` = `rSym`)
   let
     readerName = genSym(nskProc)
     writerName = genSym(nskProc)
