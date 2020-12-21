@@ -1,4 +1,5 @@
-import ../binarylang, bitstreams, unittest
+import ../binarylang, bitstreams
+import unittest, options
 
 suite "Aligned":
   createParser(p):
@@ -279,6 +280,41 @@ suite "Parser options":
     check data.second == 2
     check data.third == 3
     check data.fourth == 4
+  test "serialization":
+    var sbs = newStringBitStream()
+    defer: close(sbs)
+    try:
+      p.put(sbs, data)
+      sbs.seek(0)
+    except:
+      echo getCurrentExceptionMsg()
+      fail()
+    check data == p.get(sbs)
+
+suite "Plugins":
+  template condGet(parse, cond: untyped) =
+    if `cond`:
+      `parse`
+  template condPut(encode, cond: untyped) =
+    `encode`
+  createParser(p):
+    16: x
+    l32 {cond: x == 0x1234}: yes
+    f32 {cond: x != 0x1234}: no
+  var fbs = newFileBitStream("tests/aligned.hex")
+  defer: close(fbs)
+  var data: typeGetter(p)
+  try: data = p.get(fbs)
+  except:
+    echo getCurrentExceptionMsg()
+    fail()
+  test "cond":
+    check data.x == 0x1234
+    #check isSome(data.yes)
+    #check data.yes.get == 0x1234_5678
+    check data.yes == 0x1234_5678
+    check data.no == 0x0
+    #check isNone(data.no)
   test "serialization":
     var sbs = newStringBitStream()
     defer: close(sbs)
