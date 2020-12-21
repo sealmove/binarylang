@@ -292,15 +292,19 @@ suite "Parser options":
     check data == p.get(sbs)
 
 suite "Plugins":
-  template simpleGet(sym, parse, num: untyped) =
-    `parse`
-    `sym` = `sym` + `num`
-  template simplePut(sym, encode, num: untyped) =
-    `sym` = `sym` - `num`
-    `encode`
+  template simpleGet(before, after, parse, num: untyped) =
+    parse
+    var after = before + num
+  template simplePut(before, after, encode, num: untyped) =
+    var after = before - num
+    encode
+  template simple2Get(before, after, num: untyped) =
+    var after = before + num
+  template simple2Put(before, after, num: untyped) =
+    var after = before - num
   createParser(p):
     16: x
-    l32 {simple: x}: y
+    l32 {simple: x, simple2: x}: y
   var fbs = newFileBitStream("tests/aligned.hex")
   defer: close(fbs)
   var data: typeGetter(p)
@@ -310,7 +314,7 @@ suite "Plugins":
     fail()
   test "simple":
     check data.x == 0x1234
-    check data.y == 0x1234_68AC
+    check data.y == 0x1234_7AE0
   test "serialization":
     var sbs = newStringBitStream()
     defer: close(sbs)

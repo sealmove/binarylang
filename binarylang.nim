@@ -341,7 +341,7 @@ type
       size: BiggestInt
     endian: Endianness
     bitEndian: Endianness
-  Operations = OrderedTable[string, NimNode]
+  Operations = seq[tuple[name: string, arg: NimNode]]
   Repeat = enum
     rNo
     rFor
@@ -356,7 +356,7 @@ type
     isMagic: bool
   Field = ref object
     typ: Type
-    opts: Operations
+    ops: Operations
     val: Value
     magic: Field
 
@@ -505,9 +505,9 @@ proc decodeType(t: NimNode; seenFields, params: seq[string]; opts: Options): Typ
   result.bitEndian = bitEndian
 
 proc decodeOperations(node: NimNode): Operations =
-  result = initOrderedTable[string, NimNode]()
+  result = newSeq[tuple[name: string, arg: NimNode]]()
   for child in node:
-    result[child[0].strVal] = child[1]
+    result.add((child[0].strVal, child[1]))
 
 proc decodeValue(node: NimNode, st: var seq[string], params: seq[string]): Value =
   var node = node
@@ -599,7 +599,7 @@ proc decodeField(def: NimNode, st: var seq[string], params: seq[string],
   else: syntaxError()
   result = Field(
     typ: decodeType(a, st, params, opts),
-    opts: decodeOperations(b),
+    ops: decodeOperations(b),
     val: decodeValue(c, st, params))
 
 proc createReadStatement(sym, bs: NimNode, f: Field, st, params: seq[string]): NimNode {.compileTime.} =
@@ -949,19 +949,47 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
     var
       read = generateRead(rSym, f, bs, fieldsSymbolTable, paramsSymbolTable)
       write = generateWrite(wSym, f, bs, fieldsSymbolTable, paramsSymbolTable)
-    for k, v in f.opts:
-      var rV = v.copyNimTree
-      rV.prefixFields(fieldsSymbolTable, paramsSymbolTable, res)
-      read = newCall(ident(k & "get"), rSym, read, rV)
-      var wV = v.copyNimTree
-      wV.prefixFields(fieldsSymbolTable, paramsSymbolTable, input)
-      write = newCall(ident(k & "put"), wSym, write, wV)
-    reader.add(read)
-    writer.add(write)
-    if field != "":
-      tupleMeat.add(newIdentDefs(fieldIdent, impl))
-      reader.add(quote do:
-        result.`fieldIdent` = `rSym`)
+    if f.ops.len != 0:
+      var
+        i: int
+        rBeforeOp = rSym
+        wBeforeOp = wSym
+        rAfterOp, wAfterOp: NimNode
+      for (k, v) in f.ops:
+        var rV = v.copyNimTree
+        rV.prefixFields(fieldsSymbolTable, paramsSymbolTable, res)
+        rAfterOp = genSym(nskVar)
+        if i == 0:
+          reader.add(newCall(ident(k & "get"), rBeforeOp, rAfterOp, read, rV))
+        else:
+          reader.add(newCall(ident(k & "get"), rBeforeOp, rAfterOp, rV))
+        rBeforeOp = rAfterOp
+        inc i
+      i = 0
+      for y in countdown(f.ops.len - 1, 0):
+        let
+          k = f.ops[y].name
+          v = f.ops[y].arg
+        var wV = v.copyNimTree
+        wV.prefixFields(fieldsSymbolTable, paramsSymbolTable, input)
+        wAfterOp = genSym(nskVar)
+        if y == 0:
+          write = generateWrite(wAfterOp, f, bs, fieldsSymbolTable, paramsSymbolTable)
+          writer.add(newCall(ident(k & "put"), wBeforeOp, wAfterOp, write, wV))
+        else:
+          writer.add(newCall(ident(k & "put"), wBeforeOp, wAfterOp, wV))
+        wBeforeOp = wAfterOp
+      if field != "":
+        tupleMeat.add(newIdentDefs(fieldIdent, impl))
+        reader.add(quote do:
+          result.`fieldIdent` = `rAfterOp`)
+    else:
+      reader.add(read)
+      writer.add(write)
+      if field != "":
+        tupleMeat.add(newIdentDefs(fieldIdent, impl))
+        reader.add(quote do:
+          result.`fieldIdent` = `rSym`)
   let
     readerName = genSym(nskProc)
     writerName = genSym(nskProc)
