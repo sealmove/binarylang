@@ -10,8 +10,7 @@ BinaryLang is a complete rewrite of `binaryparse <https://github.com/PMunch/bina
 by `PMunch <https://github.com/PMunch>`_ (special thanks).
 The codebase is a lot cleaner and the bit fiddling has been extracted to a separate
 library (`bitstreams <https://github.com/sealmove/bitstreams>`_) which BinaryLang depends on.
-Moreover, a lot of features have been added and there is a plan to implement a plugin system for
-user-defined language extensions.
+Moreover, a lot of features have been added, including a plugin system for user-defined language extensions!
 
 The macro accepts 3 kind of things:
 
@@ -67,15 +66,15 @@ made up of:
    - *default*: big endian
    - ``b``: **big** endian
    - ``l``: **little** endian
-- 1 optional letter specifying bit endianness for unaligned reads:
+- 1 optional letter specifying bit endianness:
    - *default*: left -> right
    - ``n``: left -> right (**normal**)
    - ``r``: left <- right (**reverse**)
 - 1 number specifying size in **bits**:
-   - for a string it refers to the size of each individual and defaults to ``8``
+   - for a string it refers to the size of each individual character and defaults to ``8``
    - for an integer the allowed values are ``1 .. 64``
    - for a float the allowed values are ``32`` and ``64``
-   - for a custom it can't be used (use the secondary ``size`` operation)
+   - for a custom it can't be used (but you can use a substream, see below)
 
 You can order options however you want, but size must come last (e.g. ``lru16`` and ``url16`` are valid but not ``16lru``).
 
@@ -170,8 +169,6 @@ There are 3 ways to produce a ``seq`` of your ``Type``:
 - ``magic``: enclose name with ``{}`` and use assertion with
   your **next** field
 
-In until repetition you can use the implicitly defined symbol ``e`` to get last element read.
-
 .. code:: nim
 
     8: a[5] # reads 5 8-bit integers
@@ -180,6 +177,25 @@ In until repetition you can use the implicitly defined symbol ``e`` to get last 
     16: _ = 0xABCD
     u8: {d[5]} # reads byte sequences each of length 5 until next field matches
     s: _ = "END"
+
+Also, the following symbols are defined implicitly:
+
+- ``i``: current iteration index
+- ``e``: last element read
+
+These can be leveraged even in other expressions than the expression for repetition itself;
+for instance you can use them to parameterize a parser:
+
+.. code:: nim
+
+    createParser(inner, size: int):
+      8: x[size]
+    createParser(outer):
+      32: amount
+      32: sizes[amount]
+      *inner(sizes[i]): complex[amount]
+
+With the above trick you can get a sequence of variable-length sequences.
 
 Due to current limitations of the underlying bitstream implementation, to perform magic,
 your stream must be aligned and all the reads involved must also be aligned. This will
@@ -203,11 +219,11 @@ In the above example, ``limit`` bytes (8 in this case) will be read from the mai
 Then, a substream will be created out of them, which will then be used as the stream for parsing ``fixed``.
 Since ``fixed`` will only use 4 of them, the remaining 4 will effectively be discarded.
 
-Note that unlike in ``Type``, here size is counted bytes. It is implied that you cannot create
+Note that unlike in ``Type``, here size is counted in bytes. It is implied that you cannot create
 a substream if your bitstream is unaligned.
 
 This feature is **not implemented for repetition** because it would increase complexity with little benefits.
-The following syntax is **invalid** and you should use the technique with the auxiliary complex type shown above:
+The following syntax is **invalid** and instead you should use the technique with the auxiliary complex type shown above:
 
 .. code:: nim
 
@@ -230,7 +246,7 @@ achieved with one of the following:
     s: a # null/eos-terminated (because next field doesn't use assertion)
     s: b(5) # reads a string from a substream of 5 bytes until null/eos
     s: c = "ABC" # reads a string of length 3 that must match "ABC"
-    s: d # reads a string until next field is matched
+    s: d # reads a string until next field matches
     s: _ = "MAGIC"
     s: e[5] # reads 5 null-terminated strings
     s: {f} # reads null-terminated strings until next field matches
@@ -241,7 +257,7 @@ achieved with one of the following:
 Rules:
 
 - Strings are null/eos-terminated unless assertion is used on the same field
-  **or** the next one
+  **or** on the next field
 - When using repetition, each string element is null-terminated
 
 Custom parser API
@@ -249,7 +265,7 @@ Custom parser API
 
 Since a BinaryLang parser is just a ``tuple[get: proc, set: proc]``,
 you can write parsers by hand that are compatible with the DSL. Just be
-sure that ``get`` and ``set`` have a proper signature:
+sure that ``get`` and ``set`` have proper signatures:
 
 .. code:: nim
 
@@ -274,36 +290,60 @@ Example:
 Operations (plugins)
 ~~~~~~~~~~~~~~~~~~~~
 
-Plugins are **user-defined** keys which define an operation on a field.
-They are parametric, which means they also have a value. The API for
-writing plugins is not designed yet, but the syntax for using them is:
+The syntax for applying an operation on a field is the following:
 
 .. code:: nim
 
     Type {plugin: expr}: Value
 
-Examples of plugins
-~~~~~~~~~~~~~~~~~~~
+An operation is nothing more than a pair of templates which follow a specific pattern:
 
-- ``pos``: positions the ``stream`` at byte ``value`` before parsing and then
-  resets it to the previous position
-- ``cond``: wraps the field into an ``Option`` type and will only parse it if
-  ``value`` is evaluated to ``true``
-
-You can combine multiple operations which will be applied to the field
-in the specified order:
+- The names of the templates **must** follow the pattern: [name of operation] + ``get``/``put``
+- They must have exactly 3 untyped parameters (you can name them as you wish):
+   - **parameter #1**: the field you operate on
+   - **parameter #2**: parsing/encoding statements
+   - **parameter #3**: expression provided
 
 .. code:: nim
 
-    8: shouldParse
-    64: position
-    16 {cond: shouldParse.bool, pos: position}: x
+    template increaseGet(field, parse, num: untyped) =
+      parse
+      field += num
+    template increasePut(field, encode, num: untyped) =
+      field -= num
+      encode
+    createParser(myParser):
+      64: x
+      16 {increase: x}: y
 
-First ``shouldParse.bool`` will be evaluted. If it's ``false``, parsing
-won't happen; if it's true, then the stream will be positioned at ``pos``
-and ``x`` will be parsed from there. Finally, the stream will be positioned
-where it was originally. The result will be wrapped into an
-``Option`` and the resulting field will be an ``Option[int16]``.
+Note that in ``increaseGet`` we parse *before* operating on ``field``, while in ``increasePut``
+we encode *after* operating on ``field``.
+
+You can also apply more than one operations on one field, in which case they are chained
+in the specified order, and there are some special rules:
+
+- only the **first** operation has 3 parameters as described above
+- the rest **must** not have a parameter for parsing/encoding, since this is only done once
+
+.. code:: nim
+
+    template condGet(field, parse, cond: untyped) =
+      if cond:
+        parse
+    template condPut(field, encode, cond: untyped) =
+      if cond:
+        encode
+    template increaseGet(field, num: untyped) =
+      field += num
+    template increasePut(field, num: untyped) =
+      field -= num
+    createParser(myParser):
+      8: shouldParse
+      64: x
+      16 {cond: shouldParse.bool, increase: x}: y
+
+Note that there is one limitation: Operations only alter the *value* of the field and cannot
+alter the *type*. If you need a different type, then you need to resort to a custom parser.
 
 Special notes
 ~~~~~~~~~~~~~
@@ -315,8 +355,7 @@ Special notes
    - the ``i`` symbol for current index in a repetition
    - the ``s`` symbol for accessing the bitstream
 
-These last 3 symbols might conflict with your variables or fields, so you
-shouldn't use them for something else.
+These might conflict with your variables or fields, so you shouldn't use them for something else.
 
 This file is automatically generated from the documentation found in
 binarylang.nim. Use ``nim doc2 binarylang.nim`` to get the full documentation.

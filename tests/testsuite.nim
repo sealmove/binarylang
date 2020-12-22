@@ -292,19 +292,27 @@ suite "Parser options":
     check data == p.get(sbs)
 
 suite "Plugins":
-  template simpleGet(before, after, parse, num: untyped) =
+  template chainGet(sym, parse, num: untyped) =
     parse
-    var after = before + num
-  template simplePut(before, after, encode, num: untyped) =
-    var after = before - num
+    sym += num
+  template chainPut(sym, encode, num: untyped) =
+    sym -= num
     encode
-  template simple2Get(before, after, num: untyped) =
-    var after = before + num
-  template simple2Put(before, after, num: untyped) =
-    var after = before - num
+  template chain2Get(sym, num: untyped) =
+    sym += num
+  template chain2Put(sym, num: untyped) =
+    sym -= num
+  template condGet(sym, parse, cond: untyped) =
+    if cond:
+      parse
+  template condPut(sym, encode, cond: untyped) =
+    if cond:
+      encode
   createParser(p):
     16: x
-    l32 {simple: x, simple2: x}: y
+    l32 {chain: x, chain2: x}: y
+    f32 {cond: x != 0x1234}: no
+    f32 {cond: x == 0x1234}: yes
   var fbs = newFileBitStream("tests/aligned.hex")
   defer: close(fbs)
   var data: typeGetter(p)
@@ -312,7 +320,10 @@ suite "Plugins":
   except:
     echo getCurrentExceptionMsg()
     fail()
-  test "simple":
+  test "conditional":
+    check data.no == 0
+    check data.yes == 0x1234_5678'f32
+  test "chain":
     check data.x == 0x1234
     check data.y == 0x1234_7AE0
   test "serialization":
