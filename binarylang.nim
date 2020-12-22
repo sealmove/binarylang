@@ -1000,6 +1000,7 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
           v = f.ops[i].arg
         var val = v.copyNimTree
         val.prefixFields(fieldsSymbolTable, paramsSymbolTable, res)
+        val.replaceWith(ident"e", rSym)
         if i == 0:
           reader.add(newCall(ident(k & "get"), rSym, read, val))
         else:
@@ -1010,6 +1011,7 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
           v = f.ops[i].arg
         var val = v.copyNimTree
         val.prefixFields(fieldsSymbolTable, paramsSymbolTable, input)
+        val.replaceWith(ident"e", wSym)
         if i == 0:
           write = generateWrite(wSym, f, bs, fieldsSymbolTable, paramsSymbolTable)
           writer.add(newCall(ident(k & "put"), wSym, write, val))
