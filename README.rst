@@ -354,6 +354,7 @@ Special notes
    - the ``e`` symbol for getting the last element read in a repetition
    - the ``i`` symbol for current index in a repetition
    - the ``s`` symbol for accessing the bitstream
+   - the ``p`` symbol for getting the currect parsing position in bytes
 
 These might conflict with your variables or fields, so you shouldn't use them for something else.
 

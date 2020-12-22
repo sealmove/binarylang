@@ -352,6 +352,7 @@
 ##    - the ``e`` symbol for getting the last element read in a repetition
 ##    - the ``i`` symbol for current index in a repetition
 ##    - the ``s`` symbol for accessing the bitstream
+##    - the ``p`` symbol for getting the currect parsing position in bytes
 ##
 ## These might conflict with your variables or fields, so you shouldn't use them for something else.
 ##
@@ -954,6 +955,8 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
     bs = ident"s"
     res = ident"result"
     input = ident"input"
+    rPos = genSym(nskLet)
+    wPos = genSym(nskLet)
     (params, parserOptions) = decodeHeader(rest[0 .. ^2])
     paramsSymbolTable = collect(newSeq):
       for p in params:
@@ -968,7 +971,17 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
         raise newException(Defect,
           "Magic was used without assertion at the next field")
       fields[i].magic = fields[i+1]
+  reader.add(quote do:
+    let `rPos` = getPosition(s)
+    var p {.inject.}: int)
+  writer.add(quote do:
+    let `wPos` = getPosition(s)
+    var p {.inject.}: int)
   for f in fields:
+    reader.add(quote do:
+      p = `rPos` - getPosition(s))
+    writer.add(quote do:
+      p = `wPos` - getPosition(s))
     let
       rSym = genSym(nskVar)
       wSym = genSym(nskVar)
