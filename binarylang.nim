@@ -435,8 +435,13 @@ proc prefixFields(node: var NimNode, st, params: seq[string], with: NimNode) =
     if node.strVal in st and node.strVal notin params:
       node = newDotExpr(with, node)
   elif node.kind == nnkDotExpr:
-    var n = node[1]
-    prefixFields(n, st, params, with)
+    var
+      n0 = node[0]
+      n1 = node[1]
+    prefixFields(n0, st, params, with)
+    if n1.kind != nnkIdent:
+      prefixFields(n1, st, params, with)
+    node = newDotExpr(n0, n1)
   else:
     var i = 0
     while i < len(node):
@@ -921,7 +926,7 @@ proc generateWrite(sym: NimNode; f: Field; bs: NimNode, st, params: seq[string])
   let input = ident"input"
   if f.val.sizeExpr != nil:
     var size = f.val.sizeExpr.copyNimTree
-    size.prefixFields(st, st, input)
+    size.prefixFields(st, params, input)
     let
       ss = genSym(nskVar)
       wf = createWriteField(sym, f, ss, st, params)
