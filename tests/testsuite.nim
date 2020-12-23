@@ -327,8 +327,7 @@ suite "Custom":
     check data.variant1.a == 0x7856
     check data.variant2.b == 0x34121234
   test "serialization":
-    #var sbs = newStringBitStream()
-    var sbs = newFileBitStream("out.hex", fmReadWrite)
+    var sbs = newStringBitStream()
     defer: close(sbs)
     try:
       p.put(sbs, data)
