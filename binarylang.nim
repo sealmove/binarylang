@@ -267,9 +267,8 @@
 ##
 ## .. code:: nim
 ##
-##     type parserTy = tuple[...]
-##     proc get(s: BitStream): parserTy
-##     proc put(s: BitStream, input: parserTy)
+##     proc get(s: BitStream): SomeType
+##     proc put(s: BitStream, input: SomeType)
 ##     let parser = (get: get, put: put)
 ##
 ## If you want your custom parser to be parametric, simply append more
@@ -280,9 +279,8 @@
 ##
 ## .. code:: nim
 ##
-##     type parserTy = tuple[...]
-##     proc get(s: BitStream, x: int, y: float): parserTy
-##     proc put(s: BitStream, input: parserTy, x: int, y: float)
+##     proc get(s: BitStream, x: int, y: float): SomeType
+##     proc put(s: BitStream, input: SomeType, x: int, y: float)
 ##     let parser = (get: get, put: put)
 ##
 ## Operations (plugins)

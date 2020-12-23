@@ -291,6 +291,57 @@ suite "Parser options":
       fail()
     check data == p.get(sbs)
 
+suite "Custom":
+  type Tlv = ref object
+    case code: byte
+    of 0x12: a: int16
+    of 0x34: b: int32
+    else: discard
+  proc tlvGet(s: BitStream, code: byte): Tlv =
+    result = Tlv(code: code)
+    case code
+    of 0x12: result.a = s.readS16Be
+    of 0x34: result.b = s.readS32Be
+    else: discard
+  proc tlvPut(s: BitStream, input: Tlv, code: byte) =
+    case code
+    of 0x12: s.writeBe(input.a)
+    of 0x34: s.writeBe(input.b)
+    else: discard
+  let tlv = (get: tlvGet, put: tlvPut)
+  createParser(p):
+    u8: code1
+    u8: code2
+    *tlv(code1): variant1
+    *tlv(code2): variant2
+  var fbs = newFileBitStream("tests/aligned.hex")
+  defer: close(fbs)
+  var data: typeGetter(p)
+  try: data = p.get(fbs)
+  except:
+    echo getCurrentExceptionMsg()
+    fail()
+  test "tlv":
+    check data.code1 == 0x12
+    check data.code2 == 0x34
+    check data.variant1.a == 0x7856
+    check data.variant2.b == 0x34121234
+  test "serialization":
+    #var sbs = newStringBitStream()
+    var sbs = newFileBitStream("out.hex", fmReadWrite)
+    defer: close(sbs)
+    try:
+      p.put(sbs, data)
+      sbs.seek(0)
+    except:
+      echo getCurrentExceptionMsg()
+      fail()
+    let data2 = p.get(sbs)
+    check data.code1 == data2.code1
+    check data.code2 == data2.code2
+    check data.variant1.a == data2.variant1.a
+    check data.variant2.b == data2.variant2.b
+
 suite "Plugins":
   template chainGet(sym, parse, num: untyped) =
     parse
