@@ -13,6 +13,17 @@ template validPut*(field, encode, condition: untyped) =
   assert condition
   encode
 
+template posGet*(field, parse, pos: untyped) =
+  let save = getPosition(s)
+  s.setPosition(pos)
+  parse
+  s.setPosition(save)
+template posPut*(field, encode, pos: untyped) =
+  let save = getPosition(s)
+  s.setPosition(pos)
+  encode
+  s.setPosition(save)
+
 template condPosGet*(field, parse, condAndPos: untyped) =
   let
     (cond, pos) = condAndPos
