@@ -474,6 +474,7 @@ proc replaceWith(node: var NimNode; what, with: NimNode) =
       inc i
 
 proc decodeType(t: NimNode; seenFields, params: seq[string]; opts: Options): Type =
+  var t = t
   result = Type()
   var
     endian = opts.endian
@@ -537,6 +538,8 @@ proc decodeType(t: NimNode; seenFields, params: seq[string]; opts: Options): Typ
       raise newException(Defect, "l/b is only valid for multiple-of-8 sizes")
   of nnkCall:
     result.kind = kCustom
+    if t[0].kind == nnkCall:
+      t = t[0]
     result.symbol = t[0]
     var i = 1
     while i < t.len:
