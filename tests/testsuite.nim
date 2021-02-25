@@ -74,6 +74,59 @@ suite "Unaligned":
       fail()
     check data == p.get(sbs)
 
+suite "Bit endian":
+  createParser(p, bitEndian = r):
+    1: b1
+    1: b2
+    1: b3
+    1: b4
+    1: b5
+    1: b6
+    1: b7
+    1: b8
+    1: b9
+    1: b10
+    1: b11
+    1: b12
+    1: b13
+    1: b14
+    1: b15
+    1: b16
+  var fbs = newFileBitStream("tests/bitendian.hex")
+  defer: close(fbs)
+  var data: typeGetter(p)
+  try: data = p.get(fbs)
+  except:
+    echo getCurrentExceptionMsg()
+    fail()
+  test "values":
+    check data.b1 == 0
+    check data.b2 == 1
+    check data.b3 == 0
+    check data.b4 == 0
+    check data.b5 == 1
+    check data.b6 == 0
+    check data.b7 == 0
+    check data.b8 == 0
+    check data.b9 == 0
+    check data.b10 == 0
+    check data.b11 == 1
+    check data.b12 == 0
+    check data.b13 == 1
+    check data.b14 == 1
+    check data.b15 == 0
+    check data.b16 == 0
+  test "serialization":
+    var sbs = newStringBitStream()
+    defer: close(sbs)
+    try:
+      p.put(sbs, data)
+      sbs.seek(0)
+    except:
+      echo getCurrentExceptionMsg()
+      fail()
+    check data == p.get(sbs)
+
 suite "Complex":
   createParser(inner):
     8: x
