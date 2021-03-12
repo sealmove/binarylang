@@ -429,7 +429,7 @@ proc getImpl(typ: Type): NimNode =
     var sym = typ.symbol
     result = quote do: typeGetter(`sym`)
 
-proc prefixFields(node: var NimNode, st, params: seq[string], with: NimNode) =
+proc prefixFields(node: var NimNode, st, params: seq[string]; with: NimNode) =
   if node.kind == nnkIdent:
     if node.strVal in st and node.strVal notin params:
       node = newDotExpr(with, node)
@@ -632,7 +632,12 @@ proc decodeField(def: NimNode, st: var seq[string], params: seq[string],
     of nnkCall:
       a = def[1].copyNimTree
     of nnkCommand:
-      a = newCall(def[1][0].copyNimTree)
+      case def[1][0].kind
+      of nnkIdent:
+        a = newCall(def[1][0].copyNimTree)
+      of nnkCall:
+        a = def[1][0].copyNimTree
+      else: syntaxError()
       b = def[1][1].copyNimTree
     else: syntaxError()
   of nnkCall:
@@ -648,7 +653,7 @@ proc decodeField(def: NimNode, st: var seq[string], params: seq[string],
     ops: decodeOperations(b),
     val: decodeValue(c, st, params))
 
-proc createReadStatement(sym, bs: NimNode, f: Field, st, params: seq[string]): NimNode {.compileTime.} =
+proc createReadStatement(sym, bs: NimNode, f: Field; st, params: seq[string]): NimNode {.compileTime.} =
   result = newStmtList()
   let
     kind = f.typ.kind
@@ -708,7 +713,7 @@ proc createReadStatement(sym, bs: NimNode, f: Field, st, params: seq[string]): N
     let call = getCustomReader(f.typ, bs, st, params)
     result.add(quote do: `sym` = `call`)
 
-proc createWriteStatement(f: Field, sym, bs: NimNode, st, params: seq[string]): NimNode {.compileTime.} =
+proc createWriteStatement(f: Field, sym, bs: NimNode; st, params: seq[string]): NimNode {.compileTime.} =
   result = newStmtList()
   let
     kind = f.typ.kind
@@ -836,7 +841,7 @@ proc createWriteField(sym: NimNode; f: Field; bs: NimNode; st, params: seq[strin
   else:
     result.add(writeStmts)
 
-proc generateRead(sym: NimNode; f: Field; bs: NimNode, st, params: seq[string]): NimNode =
+proc generateRead(sym: NimNode; f: Field; bs: NimNode; st, params: seq[string]): NimNode =
   result = newStmtList()
   let
     res = ident"result"
