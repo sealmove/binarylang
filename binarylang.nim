@@ -473,7 +473,7 @@ proc replaceWith(node: var NimNode; what, with: NimNode) =
       node[i] = n
       inc i
 
-proc decodeType(t: NimNode; seenFields, params: seq[string]; opts: Options): Type =
+proc decodeType(t: NimNode, opts: Options): Type =
   var t = t
   result = Type()
   var
@@ -649,7 +649,7 @@ proc decodeField(def: NimNode, st: var seq[string], params: seq[string],
     c = def[2][0].copyNimTree
   else: syntaxError()
   result = Field(
-    typ: decodeType(a, st, params, opts),
+    typ: decodeType(a, opts),
     ops: decodeOperations(b),
     val: decodeValue(c, st, params))
 
