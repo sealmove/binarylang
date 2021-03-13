@@ -1,20 +1,32 @@
 ## BinaryLang is a DSL for creating binary parsers/encoders.
-## It exports the macro ``createParser`` which generates a ``tuple[get: proc, put: proc]``.
+##
+## It exports two macros:
+##
+## - ``createParser`` which is used for *product types* (tuples)
+## - ``createVariantParser`` which is used for *sum types* (object variants)
+##
+## Both of these macro generate a ``tuple[get: proc, put: proc]``:
 ##
 ## - ``get`` returns a tuple with each parsed field
 ## - ``put`` writes a compatible tuple to a stream
 ##
-## BinaryLang is a complete rewrite of `binaryparse <https://github.com/PMunch/binaryparse>`_
-## by `PMunch <https://github.com/PMunch>`_ (special thanks).
-## The codebase is a lot cleaner and the bit fiddling has been extracted to a separate
-## library (`bitstreams <https://github.com/sealmove/bitstreams>`_) which BinaryLang depends on.
-## Moreover, a lot of features have been added, including a plugin system for user-defined language extensions!
+## ``createVariantParser`` additionally creates an object variant type.
 ##
-## The macro accepts 3 kind of things:
+## ``createParser`` accepts 4 kind of things:
 ##
-## -  Parser options
-## -  Parser parameters
-## -  Block with DSL statements
+## - Name of the parser tuple
+## - Parser options (optional)
+## - Parser parameters (optional)
+## - Block with DSL statements
+##
+## ``createVariantParser`` accepts 6 kind of things:
+##
+## - Name of the parser tuple
+## - Name of the object variant type
+## - Discriminator
+## - Parser options (optional)
+## - Parser parameters (optional)
+## - Block with DSL statements
 ##
 ## Parser options
 ## --------------
@@ -350,10 +362,14 @@
 ##    - the ``e`` symbol for getting the last element read in a repetition
 ##    - the ``i`` symbol for current index in a repetition
 ##    - the ``s`` symbol for accessing the bitstream
-##    - the ``p`` symbol for getting the currect parsing position in bytes
 ##
 ## These might conflict with your variables or fields, so you shouldn't use them for something else.
 ##
+## BinaryLang is a complete rewrite of `binaryparse <https://github.com/PMunch/binaryparse>`_
+## by `PMunch <https://github.com/PMunch>`_ (special thanks).
+## The codebase is a lot cleaner and the bit fiddling has been extracted to a separate
+## library (`bitstreams <https://github.com/sealmove/bitstreams>`_) which BinaryLang depends on.
+## Moreover, a lot of features have been added, including a plugin system for user-defined language extensions!
 
 import macros, tables, strutils, sugar, strformat
 import bitstreams
@@ -960,8 +976,6 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
     bs = ident"s"
     res = ident"result"
     input = ident"input"
-    rPos = genSym(nskLet)
-    wPos = genSym(nskLet)
     (params, parserOptions) = decodeHeader(rest[0 .. ^2])
     paramsSymbolTable = collect(newSeq):
       for p in params:
@@ -976,17 +990,7 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
         raise newException(Defect,
           "Magic was used without assertion at the next field")
       fields[i].magic = fields[i+1]
-  reader.add(quote do:
-    let `rPos` = getPosition(s)
-    var p {.inject.}: int)
-  writer.add(quote do:
-    let `wPos` = getPosition(s)
-    var p {.inject.}: int)
   for f in fields:
-    reader.add(quote do:
-      p = `rPos` - getPosition(s))
-    writer.add(quote do:
-      p = `wPos` - getPosition(s))
     let
       rSym = genSym(nskVar)
       wSym = genSym(nskVar)
