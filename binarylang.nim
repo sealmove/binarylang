@@ -555,7 +555,7 @@ proc decodeOperations(node: NimNode): Operations =
   for child in node:
     result.add((child[0].strVal, child[1]))
 
-proc decodeValue(node: NimNode, st: var seq[string], params: seq[string]): Value =
+proc decodeValue(node: NimNode, st: var seq[string]): Value =
   var node = node
   result = Value()
   if node.kind == nnkAsgn:
@@ -620,8 +620,7 @@ proc decodeHeader(input: seq[NimNode]): tuple[params: seq[NimNode], opts: Option
     else:
       syntaxError()
 
-proc decodeField(def: NimNode, st: var seq[string], params: seq[string],
-                 opts: Options): Field =
+proc decodeField(def: NimNode, st: var seq[string], opts: Options): Field =
   var a, b, c: NimNode
   case def.kind
   of nnkPrefix:
@@ -651,7 +650,7 @@ proc decodeField(def: NimNode, st: var seq[string], params: seq[string],
   result = Field(
     typ: decodeType(a, opts),
     ops: decodeOperations(b),
-    val: decodeValue(c, st, params))
+    val: decodeValue(c, st))
 
 proc createReadStatement(sym, bs: NimNode, f: Field; st, params: seq[string]): NimNode {.compileTime.} =
   result = newStmtList()
@@ -969,7 +968,7 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
         p[0].strVal
   var fields = collect(newSeq):
     for def in rest[^1]:
-      decodeField(def, fieldsSymbolTable, paramsSymbolTable, parserOptions)
+      decodeField(def, fieldsSymbolTable, parserOptions)
   for i in 0 ..< fields.len - 1:
     if fields[i].val.isMagic or
        (fields[i].typ.kind == kStr and fields[i+1].val.valueExpr != nil):
