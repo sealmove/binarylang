@@ -408,11 +408,24 @@ type
     valueExpr: NimNode
     sizeExpr: NimNode
     isMagic: bool
+    isExported: bool
   Field = ref object
     typ: Type
     ops: Operations
     val: Value
     magic: Field
+  Variation = ref object
+    case isElseBranch: bool:
+    of false:
+      cases: seq[NimNode]
+    of true:
+      discard
+    case isEmpty: bool:
+    of false:
+      fields: seq[Field]
+      st: seq[string]
+    of true:
+      discard
 
 const defaultOptions: Options = (
   endian: bigEndian,
@@ -594,6 +607,9 @@ proc decodeValue(node: NimNode, st: var seq[string]): Value =
   elif node.kind == nnkCall:
     result.sizeExpr = node[1]
     node = node[0]
+  if node.kind == nnkPrefix:
+    result.isExported = true
+    node = node[1]
   if node.kind != nnkIdent:
     syntaxError()
   if node.strVal != "_":
@@ -1001,7 +1017,6 @@ proc generateWriter(fields: seq[Field]; fst, pst: seq[string]): NimNode =
   result = newStmtList()
   let
     bs = ident"s"
-    res = ident"result"
     input = ident"input"
   for f in fields:
     let
@@ -1025,12 +1040,6 @@ proc generateWriter(fields: seq[Field]; fst, pst: seq[string]): NimNode =
     var
       write = generateWrite(wSym, f, bs, fst, pst)
     if f.ops.len != 0:
-      for i in 0 .. f.ops.len - 1:
-        let
-          k = f.ops[i].name
-          v = f.ops[i].arg
-        var val = v.copyNimTree
-        val.prefixFields(fst, pst, res)
       for i in countdown(f.ops.len - 1, 0):
         let
           k = f.ops[i].name
@@ -1102,6 +1111,218 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
   for p in params:
     result[0][3].add p.copyNimTree
     result[1][3].add p.copyNimTree
+
+  when defined(BinaryLangEcho):
+    echo repr result
+
+proc decodeVariation(def: NimNode, st: seq[string], opts: Options): Variation =
+  def.expectKind(nnkCall)
+  var
+    isElseBranch, isEmpty: bool
+    cases: seq[NimNode]
+    fields: seq[Field]
+
+  if def[0].kind == nnkIdent:
+    if not eqIdent(def[0], "_"):
+      syntaxError()
+    isElseBranch = true
+
+  if def[1].len == 1 and def[1][0].kind == nnkNilLit:
+    isEmpty = true
+
+  result = Variation(isEmpty: isEmpty, isElseBranch: isElseBranch)
+
+  if not isElseBranch:
+    def[0].expectKind(nnkPar)
+    for c in def[0]:
+      cases.add(c.copyNimTree)
+    result.cases = cases
+
+  if not isEmpty:
+    var symbolTable = st
+    for f in def[1]:
+      fields.add(decodeField(f, symbolTable, opts))
+    result.fields = fields
+    result.st = st
+
+macro createVariantParser*(name, typ, disc: untyped; rest: varargs[untyped]): untyped =
+  ## This macro creates an object variant along with a variant parser
+  ## (equivelant to a variant/sum type) for that type.
+  ##
+  ## It takes the following mandatory arguments with must be first and in this
+  ## order:
+  ## - The name of the parser
+  ## - The name of the variant type
+  ## - The discriminator (``<name>: <type>``)
+  ##
+  ## And the following optional arguments:
+  ## - Parser options (``<name> = <value>``)
+  ## - Parameters (``<name>: <type>``)
+  ##
+  ## The body is similar to that of ``createParser`` macro, but the fields are
+  ## partitioned in branches. Each branch starts with one or more possible
+  ## value of the discriminator in parenthesis, seperated by comma.
+  ##
+  ## For covering the rest of the cases use the ``_`` symbol (without
+  ## parenthesis).
+  ##
+  ## If you don't want a field for some branch, use ``nil`` on the right side.
+  ##
+  ## For exporting a symbol, prefix it with ``*`` (this also work for the
+  ## discriminator).
+  ##
+  ## .. code-block:: nim
+  ##   createVariantParser(FooBar, FooBarTy, disc: int):
+  ##     (0): *Foo: foo
+  ##     (1, 3): u32: *a
+  ##     (2): nil
+  ##     (4):
+  ##       u8: b
+  ##       *Bar: bar
+  ##     _: u32: abc
+  let
+    nameStr = name.strVal
+    discType = disc[1]
+    (extraParams, parserOptions) = decodeHeader(rest[0 .. ^2])
+
+  var
+    discName: NimNode
+    objectMeat = newTree(nnkRecCase)
+
+  case disc[0].kind
+  of nnkIdent:
+    discName = disc[0]
+    objectMeat.add(
+      newIdentDefs(
+        discName,
+        discType))
+  of nnkPrefix:
+    discName = disc[0][1]
+    objectMeat.add(
+      newIdentDefs(
+        postfix(
+          discName,
+          "*"),
+        discType))
+  else:
+    syntaxError()
+
+  let
+    params = newIdentDefs(discName, discType) & extraParams
+    paramsSymbolTable = collect(newSeq):
+      for p in params:
+        p[0].strVal
+    variations = collect(newSeq):
+      for def in rest[^1]:
+        decodeVariation(def, paramsSymbolTable, parserOptions)
+
+  for v in variations:
+    let left =
+      if v.isEmpty:
+        newNilLit()
+      else:
+        var rl = newTree(nnkRecList)
+        for f in v.fields:
+          let fieldName = ident(f.val.name)
+          rl.add(
+            newIdentDefs(
+              (if f.val.isExported: postfix(fieldName, "*")
+              else: fieldName),
+              f.typ.getImpl))
+        rl
+
+    if v.isElseBranch:
+      objectMeat.add(
+        nnkElse.newTree(left))
+    else:
+      var branch = newTree(nnkOfBranch)
+      branch.add(v.cases)
+      branch.add(left)
+      objectMeat.add(branch)
+
+  let decl = nnkTypeSection.newTree(
+    nnkTypeDef.newTree(
+      typ,
+      newEmptyNode(),
+      nnkRefTy.newTree(
+        nnkObjectTy.newTree(
+          newEmptyNode(),
+          newEmptyNode(),
+          nnkRecList.newTree(
+            objectMeat)))))
+
+  let getName = ident(nameStr & "Get")
+
+  var getParams: seq[NimNode]
+  getParams.add(typ)
+  getParams.add(newIdentDefs(ident"s", ident"BitStream"))
+  getParams.add(params)
+
+  let res = ident"result"
+  var getCaseStmt = nnkCaseStmt.newTree(discName)
+
+  for v in variations:
+    let inner =
+      if v.isEmpty:
+        nnkDiscardStmt.newTree(newEmptyNode())
+      else:
+        generateReader(v.fields, v.st, paramsSymbolTable)
+    if v.isElseBranch:
+      getCaseStmt.add(nnkElse.newTree(inner))
+    else:
+      var branch = newTree(nnkOfBranch)
+      for b in v.cases:
+        branch.add(b)
+      branch.add(inner)
+      getCaseStmt.add(branch)
+
+  let getBody = newStmtList(
+    newAssignment(
+      res,
+      nnkObjConstr.newTree(
+        typ,
+        newColonExpr(
+          discName,
+          discName))),
+    getCaseStmt)
+
+  let get = newProc(getName, getParams, getBody)
+
+  let
+    putName = ident(nameStr & "Put")
+    input = ident"input"
+
+  var putParams: seq[NimNode]
+  putParams.add(newEmptyNode())
+  putParams.add(newIdentDefs(ident"s", ident"BitStream"))
+  putParams.add(newIdentDefs(input, typ))
+  putParams.add(params)
+
+
+  var putBody = nnkCaseStmt.newTree(discName)
+
+  for v in variations:
+    let inner =
+      if v.isEmpty:
+        nnkDiscardStmt.newTree(newEmptyNode())
+      else:
+        generateWriter(v.fields, v.st, paramsSymbolTable)
+    if v.isElseBranch:
+      putBody.add(nnkElse.newTree(inner))
+    else:
+      var branch = newTree(nnkOfBranch)
+      for b in v.cases:
+        branch.add(b)
+      branch.add(inner)
+      putBody.add(branch)
+
+  let put = newProc(putName, putParams, putBody)
+
+  result = quote do:
+    `decl`
+    `get`
+    `put`
+    let `name` = (get: `getName`, put: `putName`)
 
   when defined(BinaryLangEcho):
     echo repr result

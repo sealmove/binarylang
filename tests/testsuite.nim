@@ -344,24 +344,13 @@ suite "Parser options":
       fail()
     check data == p.get(sbs)
 
-suite "Custom":
-  type Tlv = ref object
-    case code: byte
-    of 0x12: a: int16
-    of 0x34: b: int32
-    else: discard
-  proc tlvGet(s: BitStream, code: byte): Tlv =
-    result = Tlv(code: code)
-    case code
-    of 0x12: result.a = s.readS16Be
-    of 0x34: result.b = s.readS32Be
-    else: discard
-  proc tlvPut(s: BitStream, input: Tlv, code: byte) =
-    case code
-    of 0x12: s.writeBe(input.a)
-    of 0x34: s.writeBe(input.b)
-    else: discard
-  let tlv = (get: tlvGet, put: tlvPut)
+suite "Tlv":
+  createVariantParser(tlv, TlvTy, *code: byte):
+    (0x12): u16: a
+    (0x34, 0x56):
+      u32: *b
+      u16: c
+    _: nil
   createParser(p):
     u8: code1
     u8: code2
@@ -379,6 +368,7 @@ suite "Custom":
     check data.code2 == 0x34
     check data.variant1.a == 0x7856
     check data.variant2.b == 0x34121234
+    check data.variant2.c == 0x5678
   test "serialization":
     var sbs = newStringBitStream()
     defer: close(sbs)
