@@ -1224,11 +1224,14 @@ macro createVariantParser*(name, typ, disc: untyped; rest: varargs[untyped]): un
         var rl = newTree(nnkRecList)
         for f in v.fields:
           let fieldName = ident(f.val.name)
+          var impl = f.typ.getImpl
+          if f.val.repeat != rNo:
+            impl = quote do: seq[`impl`]
           rl.add(
             newIdentDefs(
               (if f.val.isExported: postfix(fieldName, "*")
               else: fieldName),
-              f.typ.getImpl))
+              impl))
         rl
 
     if v.isElseBranch:
