@@ -14,7 +14,11 @@ jobs:
     - name: Install dependencies
       run: nimble install -dy
     - name: Generate documentation
-      run: nim doc2 -o:docs/index.html binarylang.nim
+      run: |
+        nim doc -o:docs/index.html binarylang.nim
+        nim rst2html tutorial.rst
+        mv htmldocs/* docs/
+        rmdir htmldocs
     - name: Commit documentation
       run: |
         git config --global user.name 'Stefanos Mandalas'
