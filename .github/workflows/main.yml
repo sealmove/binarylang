@@ -1,0 +1,25 @@
+name: MAIN
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  docgen:
+    runs-on: ubuntu-latest
+    container: nimlang/nim
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: nimble install -dy
+    - name: Generate documentation
+      run: nim doc2 -o:docs/index.html binarylang.nim
+    - name: Commit documentation
+      run: |
+        git config --global user.name 'Stefanos Mandalas'
+        git config --global user.email 'sealmove@protonmail.com'
+        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+        git add docs
+        git commit -am "Update documentation"
+        git push
