@@ -14,6 +14,9 @@ Moreover, you can mix DSL-generated parsers with custom parsers, as long as the
 custom parsers follow the API. There are also ways to extend the DSL through templates. These works as
 *plugins*.
 
+## Documentation
+[Read the docs](https://sealmove.github.io/binarylang/)
+
 ## Examples
 ### Parsing Pascal strings
 ```nim
@@ -23,5 +26,3 @@ createParser(PascalString):
 ```
 
 For larger/real-world examples see my [n4n6 repo](https://github.com/sealmove/n4n6).
-
-To generate the documentation which explains the DSL, run `nim doc2 binarylang.nim`
