@@ -11,7 +11,7 @@ Two macros are exported:
 - `createVariantParser`: listed parsers are partitioned into sets of choices, mapping data to an `object variant`
 
 Moreover, you can mix DSL-generated parsers with custom parsers, as long as the
-custom parsers follow the API. There are also ways to extend the DSL through templates. These works as
+custom parsers follow the API. There are also ways to extend the DSL through templates. These work as
 *plugins*.
 
 ## Documentation
