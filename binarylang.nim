@@ -587,31 +587,30 @@ proc decodeOperations(node: NimNode): Operations =
 proc decodeValue(node: NimNode, st: var seq[string]): Value =
   var node = node
   result = Value()
-  if node.kind == nnkAsgn:
-    result.valueExpr = node[1]
-    node = node[0]
-  if node.kind == nnkCurly:
-    if result.valueExpr != nil:
-      raise newException(Defect,
-        "Magic and assertion can't be used together in the same field")
-    result.isMagic = true
-    node = node[0]
-  if node.kind == nnkBracketExpr:
-    result.repeat = rFor
-    result.repeatExpr = node[1]
-    node = node[0]
-  elif node.kind == nnkCurlyExpr:
-    result.repeat = rUntil
-    result.repeatExpr = node[1]
-    node = node[0]
-  elif node.kind == nnkCall:
-    result.sizeExpr = node[1]
-    node = node[0]
-  if node.kind == nnkPrefix:
-    result.isExported = true
-    node = node[1]
-  if node.kind != nnkIdent:
-    syntaxError()
+  while node.kind != nnkIdent:
+    if node.kind == nnkAsgn:
+      result.valueExpr = node[1]
+      node = node[0]
+    elif node.kind == nnkCurly:
+      if result.valueExpr != nil:
+        raise newException(Defect,
+          "Magic and assertion can't be used together in the same field")
+      result.isMagic = true
+      node = node[0]
+    elif node.kind == nnkBracketExpr:
+      result.repeat = rFor
+      result.repeatExpr = node[1]
+      node = node[0]
+    elif node.kind == nnkCurlyExpr:
+      result.repeat = rUntil
+      result.repeatExpr = node[1]
+      node = node[0]
+    elif node.kind == nnkCall:
+      result.sizeExpr = node[1]
+      node = node[0]
+    elif node.kind == nnkPrefix:
+      result.isExported = true
+      node = node[1]
   if node.strVal != "_":
     result.name = node.strVal
     st.add(result.name)
