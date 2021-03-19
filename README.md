@@ -15,7 +15,8 @@ custom parsers follow the API. There are also ways to extend the DSL through tem
 *plugins*.
 
 ## Documentation
-[Read the docs](https://sealmove.github.io/binarylang/)
+[User guide](https://sealmove.github.io/binarylang/)
+[Tutorial](https://sealmove.github.io/binarylang/tutorial.html)
 
 ## Examples
 ### Parsing Pascal strings
