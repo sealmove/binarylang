@@ -373,6 +373,7 @@
 
 import macros, tables, strutils, sugar, strformat
 import bitstreams
+export bitstreams
 
 type
   MagicError* = object of Defect
