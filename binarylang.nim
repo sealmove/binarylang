@@ -53,12 +53,9 @@
 ##
 ## Each statement corresponds to 1 field. The general syntax is:
 ##
-## .. code:: nim
+## .. code::
 ##
-##     Type {Operations}: Value
-##
-## where ``{Operations}`` is optional and refers to a plugin system (see
-## below).
+##     type {plugin: expr, ...}: name (...)
 ##
 ## Type
 ## ~~~~
@@ -88,14 +85,10 @@
 ##
 ## You can order options however you want, but size must come last (e.g. ``lru16`` and ``url16`` are valid but not ``16lru``).
 ##
-## Value
+## Name
 ## ~~~~~
 ##
-## This section includes the following features (only name is mandatory):
-##
-## - name
-## - repetition
-## - assertion
+## The name of the field to be produced.
 ##
 ## If you don't *really* want a name, you can discard the symbol by using ``_`` in its place:
 ##
@@ -298,11 +291,15 @@
 ## Operations (plugins)
 ## ~~~~~~~~~~~~~~~~~~~~
 ##
-## The syntax for applying an operation on a field is the following:
+## Operations can be applied to fields with the following syntax:
 ##
-## .. code:: nim
+## .. code::
 ##
-##     Type {plugin: expr}: Value
+##     type {op: expr}: name
+##
+## Operations act on data after the parsing and before the encoding respectively.
+##
+## The big restriction here is that an operation cannot alter the type, since the parsing/encoding type is always fixed.
 ##
 ## An operation is nothing more than a pair of templates which follow a specific pattern:
 ##
@@ -350,8 +347,32 @@
 ##       64: x
 ##       16 {cond: shouldParse.bool, increase: x}: y
 ##
-## Note that there is one limitation: Operations only alter the *value* of the field and cannot
-## alter the *type*. If you need a different type, then you need to resort to a custom parser.
+## Properties
+## ~~~~~~~~~~
+##
+## Properties follow similar syntax to operations, but the name of the property must be prefixed with `@`.
+##
+## Properties are meant for making the interaction with the parsed data easier.
+##
+## There are two big differences compared to operations:
+## - They don't affect parsing/encoding - they only generate convenient procs
+## - They are built-in features, you cannot make your own without alterning binarylang
+##
+## The following properties are available:
+## - set
+## - get
+##
+## set/get allows you to get a different view of your data, hiding the underlying implementation.
+## This is particularly useful when the type used to parse the data differs from the one you want to use to interact with them in Nim.
+## set/get change the actual name of the field in order to hide it. The specified name is used as the name of a getter or/and a setter proc.
+##
+## .. code:: nim
+##     createParser(myParser):
+##       s {@get: e.parseInt, @set: $e}: myInt
+##
+##     var x: typeGetter(myParser)
+##     echo x.myInt + 42
+##     x.myInt = 24
 ##
 ## Special notes
 ## ~~~~~~~~~~~~~
@@ -396,7 +417,9 @@ type
       size: BiggestInt
     endian: Endianness
     bitEndian: Endianness
-  Operations = seq[tuple[name: string, arg: NimNode]]
+  Transformations = ref object
+    ops: seq[tuple[name: string, arg: NimNode]]
+    props: Table[string, NimNode]
   Repeat = enum
     rNo
     rFor
@@ -412,7 +435,7 @@ type
     isExported: bool
   Field = ref object
     typ: Type
-    ops: Operations
+    trans: Transformations
     val: Value
     magic: Field
   Variation = ref object
@@ -494,7 +517,7 @@ proc getCustomWriter(typ: Type, bs: NimNode, st, params: seq[string]): NimNode =
 proc replaceWith(node: var NimNode; what, with: NimNode) =
   if node.kind == nnkIdent:
     if eqIdent(node, what):
-      node = with
+      node = with.copyNimTree
   else:
     var i = 0
     while i < len(node):
@@ -580,10 +603,13 @@ proc decodeType(t: NimNode, opts: Options): Type =
   result.endian = endian
   result.bitEndian = bitEndian
 
-proc decodeOperations(node: NimNode): Operations =
-  result = newSeq[tuple[name: string, arg: NimNode]]()
+proc decodeTransformations(node: NimNode): Transformations =
+  result = Transformations()
   for child in node:
-    result.add((child[0].strVal, child[1]))
+    if child[0].kind == nnkIdent:
+      result.ops.add((child[0].strVal, child[1].copyNimTree))
+    else:
+      result.props[child[0][1].strVal] = child[1].copyNimTree
 
 proc decodeValue(node: NimNode, st: var seq[string]): Value =
   var node = node
@@ -681,8 +707,17 @@ proc decodeField(def: NimNode, st: var seq[string], opts: Options): Field =
   else: syntaxError()
   result = Field(
     typ: decodeType(a, opts),
-    ops: decodeOperations(b),
+    trans: decodeTransformations(b),
     val: decodeValue(c, st))
+
+proc isInterfaced(f: Field): bool =
+  f.trans.props.hasKey("get") or f.trans.props.hasKey("set")
+
+proc fieldIdent(f: Field): NimNode =
+  if f.isInterfaced:
+    genSym(nskField)
+  else:
+    ident(f.val.name)
 
 proc createReadStatement(sym, bs: NimNode, f: Field; st, params: seq[string]): NimNode {.compileTime.} =
   result = newStmtList()
@@ -832,8 +867,7 @@ proc createReadField(sym: NimNode; f: Field; bs: NimNode; st, params: seq[string
 proc createWriteField(sym: NimNode; f: Field; bs: NimNode; st, params: seq[string]): NimNode =
   result = newStmtList()
   let
-    field = f.val.name
-    fieldIdent = ident(field)
+    ident = f.fieldIdent
     input = ident"input"
     elem = if f.val.isMagic: genSym(nskForVar)
            else: sym
@@ -867,7 +901,7 @@ proc createWriteField(sym: NimNode; f: Field; bs: NimNode; st, params: seq[strin
         `writeStmt`)
   if f.val.isMagic:
     result.add(quote do:
-      for `elem` in `input`.`fieldIdent`:
+      for `elem` in `input`.`ident`:
         `writeStmts`)
   else:
     result.add(writeStmts)
@@ -984,8 +1018,8 @@ proc generateReader(fields: seq[Field]; fst, pst: seq[string]): NimNode =
   for f in fields:
     let
       rSym = genSym(nskVar)
-      field = f.val.name
-      fieldIdent = ident(field)
+      ident = f.fieldIdent
+      field = ident.strVal
     var impl = f.typ.getImpl
     if f.val.repeat != rNo:
       impl = quote do: seq[`impl`]
@@ -995,11 +1029,11 @@ proc generateReader(fields: seq[Field]; fst, pst: seq[string]): NimNode =
       var `rSym`: `impl`)
     var
       read = generateRead(rSym, f, bs, fst, pst)
-    if f.ops.len != 0:
-      for i in 0 .. f.ops.len - 1:
+    if f.trans.ops.len != 0:
+      for i in 0 .. f.trans.ops.len - 1:
         let
-          k = f.ops[i].name
-          v = f.ops[i].arg
+          k = f.trans.ops[i].name
+          v = f.trans.ops[i].arg
         var val = v.copyNimTree
         val.prefixFields(fst, pst, res)
         val.replaceWith(ident"e", rSym)
@@ -1011,7 +1045,7 @@ proc generateReader(fields: seq[Field]; fst, pst: seq[string]): NimNode =
       result.add(read)
     if field != "":
       result.add(quote do:
-        result.`fieldIdent` = `rSym`)
+        result.`ident` = `rSym`)
 
 proc generateWriter(fields: seq[Field]; fst, pst: seq[string]): NimNode =
   result = newStmtList()
@@ -1021,15 +1055,15 @@ proc generateWriter(fields: seq[Field]; fst, pst: seq[string]): NimNode =
   for f in fields:
     let
       wSym = genSym(nskVar)
-      field = f.val.name
-      fieldIdent = ident(field)
+      ident = f.fieldIdent
+      field = ident.strVal
     var impl = f.typ.getImpl
     if f.val.repeat != rNo:
       impl = quote do: seq[`impl`]
     if f.val.isMagic:
       impl = quote do: seq[`impl`]
     let value = if field == "": (if f.val.valueExpr == nil: nil else: f.val.valueExpr)
-                else: quote do: `input`.`fieldIdent`
+                else: quote do: `input`.`ident`
     result.add(
       if value == nil:
         quote do:
@@ -1039,11 +1073,11 @@ proc generateWriter(fields: seq[Field]; fst, pst: seq[string]): NimNode =
           var `wSym` = `value`)
     var
       write = generateWrite(wSym, f, bs, fst, pst)
-    if f.ops.len != 0:
-      for i in countdown(f.ops.len - 1, 0):
+    if f.trans.ops.len != 0:
+      for i in countdown(f.trans.ops.len - 1, 0):
         let
-          k = f.ops[i].name
-          v = f.ops[i].arg
+          k = f.trans.ops[i].name
+          v = f.trans.ops[i].arg
         var val = v.copyNimTree
         val.prefixFields(fst, pst, input)
         val.replaceWith(ident"e", wSym)
@@ -1062,6 +1096,7 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
   ## two fields ``get`` and ``put``. Get is on the form
   ## ``proc (bs: BitStream): tuple[<fields>]`` and put is
   ## ``proc (bs: BitStream, input: tuple[<fields>])``
+  result = newStmtList()
   var
     tupleMeat = newTree(nnkTupleTy)
     fieldsSymbolTable = newSeq[string]()
@@ -1087,30 +1122,71 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
     writer = generateWriter(fields, fieldsSymbolTable, paramsSymbolTable)
   for f in fields:
     let
-      field = f.val.name
-      fieldIdent = ident(field)
+      ident = f.fieldIdent
+      field = ident.strVal
     var impl = f.typ.getImpl
     if f.val.repeat != rNo:
       impl = quote do: seq[`impl`]
     if f.val.isMagic:
       impl = quote do: seq[`impl`]
-    if f.val.name != "":
-      tupleMeat.add(newIdentDefs(fieldIdent, impl))
+    if field != "":
+      tupleMeat.add(newIdentDefs(ident, impl))
+    if f.isInterfaced:
+      let
+        objGet = genSym(nskParam)
+        targetField = newDotExpr(objGet, ident)
+      var expr: NimNode
+      if f.trans.props.hasKey("get"):
+        expr = f.trans.props["get"]
+        expr.replaceWith(ident"e", targetField)
+        expr.prefixFields(fieldsSymbolTable, paramsSymbolTable, objGet)
+      else:
+        expr = targetField
+      result.add(
+        newProc(
+          ident(f.val.name),
+          @[ident"auto",
+            newIdentDefs(objGet, tupleMeat)],
+          expr
+        )
+      )
+
+      let
+        objPut = genSym(nskParam)
+        val = ident"x"
+        targetVal = newDotExpr(objPut, val)
+      if f.trans.props.hasKey("set"):
+        expr = f.trans.props["set"]
+        expr.replaceWith(ident"e", targetVal)
+        expr.prefixFields(fieldsSymbolTable, paramsSymbolTable, objPut)
+      else:
+        expr = targetVal
+      result.add(
+        newProc(
+          nnkAccQuoted.newTree(
+            ident(f.val.name),
+            ident"="),
+          @[newEmptyNode(),
+            newIdentDefs(objPut, nnkVarTy.newTree(tupleMeat)),
+            newIdentDefs(val, ident"any")],
+          newAssignment(
+            newDotExpr(objPut, ident),
+            expr)))
   let
     readerName = genSym(nskProc)
     writerName = genSym(nskProc)
   if tupleMeat.len == 0:
     let dummy = genSym(nskField)
     tupleMeat.add(newIdentDefs(dummy, ident"int"))
-  result = quote do:
+  result.add(quote do:
     proc `readerName`(`bs`: BitStream): `tupleMeat` =
       `reader`
     proc `writerName`(`bs`: BitStream, `input`: `tupleMeat`) =
       `writer`
-    let `name` = (get: `readerName`, put: `writerName`)
+    let `name` = (get: `readerName`, put: `writerName`))
   for p in params:
-    result[0][3].add p.copyNimTree
-    result[1][3].add p.copyNimTree
+    result[0][^3][3].add p.copyNimTree
+    result[0][^2][3].add p.copyNimTree
 
   when defined(BinaryLangEcho):
     echo repr result
@@ -1223,14 +1299,13 @@ macro createVariantParser*(name, typ, disc: untyped; rest: varargs[untyped]): un
       else:
         var rl = newTree(nnkRecList)
         for f in v.fields:
-          let fieldName = ident(f.val.name)
           var impl = f.typ.getImpl
           if f.val.repeat != rNo:
             impl = quote do: seq[`impl`]
           rl.add(
             newIdentDefs(
-              (if f.val.isExported: postfix(fieldName, "*")
-              else: fieldName),
+              (if f.val.isExported: postfix(f.fieldIdent, "*")
+              else: f.fieldIdent),
               impl))
         rl
 
@@ -1300,7 +1375,6 @@ macro createVariantParser*(name, typ, disc: untyped; rest: varargs[untyped]): un
   putParams.add(newIdentDefs(ident"s", ident"BitStream"))
   putParams.add(newIdentDefs(input, typ))
   putParams.add(params)
-
 
   var putBody = nnkCaseStmt.newTree(discName)
 
