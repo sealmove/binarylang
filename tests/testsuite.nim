@@ -189,7 +189,7 @@ suite "Repetition":
     *inner(i+1): complex[3]
     8: size
     4: nibbles[size]
-    8: bytes{e == 2}
+    8: bytes{_ == 2}
     2: duets{2*i > 7}
     3: trios{s.atEnd}
   var fbs = newFileBitStream("tests/repetition.hex")

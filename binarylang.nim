@@ -175,7 +175,7 @@
 ## .. code:: nim
 ##
 ##     8: a[5] # reads 5 8-bit integers
-##     8: b{e == 103 or i > 9} # reads until it finds the value 103 or completes 10th iteration
+##     8: b{_ == 103 or i > 9} # reads until it finds the value 103 or completes 10th iteration
 ##     8: {c} # reads 8-bit integers until next field is matches
 ##     16: _ = 0xABCD
 ##     u8: {d[5]} # reads byte sequences each of length 5 until next field matches
@@ -184,7 +184,7 @@
 ## Also, the following symbols are defined implicitly:
 ##
 ## - ``i``: current iteration index
-## - ``e``: last element read
+## - ``_``: last element read
 ##
 ## These can be leveraged even in other expressions than the expression for repetition itself;
 ## for instance you can use them to parameterize a parser:
@@ -350,7 +350,7 @@
 ## Properties
 ## ~~~~~~~~~~
 ##
-## Properties follow similar syntax to operations, but the name of the property must be prefixed with `@`.
+## Properties follow similar syntax to operations, but the name of the property must be prefixed with ``@``.
 ##
 ## Properties are meant for making the interaction with the parsed data easier.
 ##
@@ -361,14 +361,24 @@
 ## The following properties are available:
 ## - set
 ## - get
+## - hook
 ##
-## set/get allows you to get a different view of your data, hiding the underlying implementation.
+## ``@set`` and ``@get`` allows you to get a different view of your data, hiding the underlying implementation.
 ## This is particularly useful when the type used to parse the data differs from the one you want to use to interact with them in Nim.
-## set/get change the actual name of the field in order to hide it. The specified name is used as the name of a getter or/and a setter proc.
+##
+## ``@hook`` allows you to run more code each time your field is mutated.
+##
+## Using any of the properties: ``@set``, ``@get``, ``@hook`` forces the actual
+## name of the field to be generated with ``genSym``, thus hiding it from the user.
+## The specified name is then used for generating a pair of *getter*/*setter* procs.
+## This way the extra code run on access/mutation is transparent to the user.
+##
+## - in `@get`: `_` refers to the field
+## - in `@set` and in `@hook`: `_` refers to the value being assigned to the field
 ##
 ## .. code:: nim
 ##     createParser(myParser):
-##       s {@get: e.parseInt, @set: $e}: myInt
+##       s {@get: _.parseInt, @set: $_}: myInt
 ##
 ##     var x: typeGetter(myParser)
 ##     echo x.myInt + 42
@@ -377,10 +387,10 @@
 ## Special notes
 ## ~~~~~~~~~~~~~
 ##
-## - Nim expressions may contain:
+## - Nim expressions may contain *if applicable*:
 ##    - a previously defined field
 ##    - a parser parameter
-##    - the ``e`` symbol for getting the last element read in a repetition
+##    - the ``_`` symbol for *subject* element
 ##    - the ``i`` symbol for current index in a repetition
 ##    - the ``s`` symbol for accessing the bitstream
 ##
@@ -711,7 +721,7 @@ proc decodeField(def: NimNode, st: var seq[string], opts: Options): Field =
     val: decodeValue(c, st))
 
 proc isInterfaced(f: Field): bool =
-  f.trans.props.hasKey("get") or f.trans.props.hasKey("set")
+  f.trans.props.len > 0
 
 proc fieldIdent(f: Field): NimNode =
   if f.isInterfaced:
@@ -847,7 +857,7 @@ proc createReadField(sym: NimNode; f: Field; bs: NimNode; st, params: seq[string
       let
         tmp = genSym(nskVar)
         loopIdx = ident"i"
-      expr.replaceWith(ident"e", tmp)
+      expr.replaceWith(ident"_", tmp)
       expr.replaceWith(ident"s", bs)
       let readStmt = createReadStatement(tmp, bs, f, st, params)
       result.add (quote do:
@@ -893,7 +903,7 @@ proc createWriteField(sym: NimNode; f: Field; bs: NimNode; st, params: seq[strin
     let
       forSym = genSym(nskForVar)
       loopIdx = ident"i"
-    expr.replaceWith(ident"e", elem)
+    expr.replaceWith(ident"_", elem)
     expr.replaceWith(ident"s", bs)
     let writeStmt = createWriteStatement(f, forSym, bs, st, params)
     writeStmts.add(quote do:
@@ -1036,7 +1046,7 @@ proc generateReader(fields: seq[Field]; fst, pst: seq[string]): NimNode =
           v = f.trans.ops[i].arg
         var val = v.copyNimTree
         val.prefixFields(fst, pst, res)
-        val.replaceWith(ident"e", rSym)
+        val.replaceWith(ident"_", rSym)
         if i == 0:
           result.add(newCall(ident(k & "get"), rSym, read, val))
         else:
@@ -1080,7 +1090,7 @@ proc generateWriter(fields: seq[Field]; fst, pst: seq[string]): NimNode =
           v = f.trans.ops[i].arg
         var val = v.copyNimTree
         val.prefixFields(fst, pst, input)
-        val.replaceWith(ident"e", wSym)
+        val.replaceWith(ident"_", wSym)
         if i == 0:
           write = generateWrite(wSym, f, bs, fst, pst)
           result.add(newCall(ident(k & "put"), wSym, write, val))
@@ -1138,7 +1148,7 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
       var expr: NimNode
       if f.trans.props.hasKey("get"):
         expr = f.trans.props["get"]
-        expr.replaceWith(ident"e", targetField)
+        expr.replaceWith(ident"_", targetField)
         expr.prefixFields(fieldsSymbolTable, paramsSymbolTable, objGet)
       else:
         expr = targetField
@@ -1157,7 +1167,7 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
         targetVal = newDotExpr(objPut, val)
       if f.trans.props.hasKey("set"):
         expr = f.trans.props["set"]
-        expr.replaceWith(ident"e", targetVal)
+        expr.replaceWith(ident"_", targetVal)
         expr.prefixFields(fieldsSymbolTable, paramsSymbolTable, objPut)
       else:
         expr = targetVal
