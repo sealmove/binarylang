@@ -1,114 +1,80 @@
 ## BinaryLang is a DSL for creating binary parsers/encoders.
 ##
 ## It exports two macros:
+## - `createParser` which is used to produce a *product parser*
+## - `createVariantParser` which is used to produce a *sum parser*
 ##
-## - ``createParser`` which is used for *product types* (tuples)
-## - ``createVariantParser`` which is used for *sum types* (object variants)
-##
-## Both of these macro generate a ``tuple[get: proc, put: proc]``:
-##
-## - ``get`` returns a tuple with each parsed field
-## - ``put`` writes a compatible tuple to a stream
-##
-## ``createVariantParser`` additionally creates an object variant type.
-##
-## ``createParser`` accepts 4 kind of things:
-##
-## - Name of the parser tuple
-## - Parser options (optional)
-## - Parser parameters (optional)
-## - Block with DSL statements
-##
-## ``createVariantParser`` accepts 6 kind of things:
-##
-## - Name of the parser tuple
-## - Name of the object variant type
-## - Discriminator
-## - Parser options (optional)
-## - Parser parameters (optional)
-## - Block with DSL statements
+## Both of these macro generate a type declaration and a
+## `tuple[get: proc, put: proc]`:
+## - `get` returns an object with each parsed field
+## - `put` writes an object to a stream
 ##
 ## Parser options
-## --------------
-##
-## Each specified option must be in the form ``option = value``:
-##
-## - ``endian``: sets the default byte endianness for the whole parser
+## ----------------------------------------------------------------------------
+## Each specified option must be in the form `option = value`:
+## - `endian`: sets the default byte endianness for the whole parser
 ##    - *default*: big endian
-##    - ``b``: **big** endian
-##    - ``l``: **little** endian
-## - ``bitEndian``: sets the default bit endianness for the whole parser
+##    - `b`: **big** endian
+##    - `l`: **little** endian
+## - `bitEndian`: sets the default bit endianness for the whole parser
 ##    - *default*: left -> right
-##    - ``n``: left -> right (**normal**)
-##    - ``r``: left <- right (**reverse**)
+##    - `n`: left -> right (**normal**)
+##    - `r`: left <- right (**reverse**)
 ##
 ## Parser parameters
-## -----------------
-##
-## Each parameter must be in the form ``symbol: type``. The generated
-## ``get``/``put`` procs will then have this additional parameter appended.
+## ----------------------------------------------------------------------------
+## Each parameter must be in the form `symbol: type`. The generated `get`/`put`
+## procs will then have this additional parameter appended.
 ##
 ## DSL
-## ----
-##
+## ----------------------------------------------------------------------------
 ## Each statement corresponds to 1 field. The general syntax is:
 ##
 ## .. code::
+##    type {plugin: expr, ...}: name (...)
 ##
-##     type {plugin: expr, ...}: name (...)
+## For the name you use `_` to discard the field, or prepend it with `*` to
+## export it.
 ##
 ## Type
-## ~~~~
-##
+## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ## The **kind**, **endianness** and **size** are encoded in a identifier
 ## made up of:
 ##
 ## - 1 optional letter specifying the kind:
 ##    - *default*: signed integer
-##    - ``u``: **unsigned** integer
-##    - ``f``: **float**
-##    - ``s``: **string**
-##    - ``*``: complex (see below)
+##    - `u`: **unsigned** integer
+##    - `f`: **float**
+##    - `s`: **string**
+##    - `*`: complex (see below)
 ## - 1 optional letter specifying byte endianness:
 ##    - *default*: big endian
-##    - ``b``: **big** endian
-##    - ``l``: **little** endian
+##    - `b`: **big** endian
+##    - `l`: **little** endian
 ## - 1 optional letter specifying bit endianness:
 ##    - *default*: left -> right
-##    - ``n``: left -> right (**normal**)
-##    - ``r``: left <- right (**reverse**)
+##    - `n`: left -> right (**normal**)
+##    - `r`: left <- right (**reverse**)
 ## - 1 number specifying size in **bits**:
-##    - for a string it refers to the size of each individual character and defaults to ``8``
-##    - for an integer the allowed values are ``1 .. 64``
-##    - for a float the allowed values are ``32`` and ``64``
+##    - for a string it refers to the size of each individual character and
+##      defaults to `8`
+##    - for an integer the allowed values are `1 .. 64`
+##    - for a float the allowed values are `32` and `64`
 ##    - for a custom it can't be used (but you can use a substream, see below)
 ##
-## You can order options however you want, but size must come last (e.g. ``lru16`` and ``url16`` are valid but not ``16lru``).
-##
-## Name
-## ~~~~~
-##
-## The name of the field to be produced.
-##
-## If you don't *really* want a name, you can discard the symbol by using ``_`` in its place:
-##
-## .. code:: nim
-##
-##     createParser(myParser):
-##       8: _
+## You can order options however you want, but size must come last (e.g.
+## `lru16` and `url16` are valid but not `16lru`).
 ##
 ## Alignment
-## ~~~~~~~~~
-##
-## If any of the following is violated, BinaryLang should generate an exception:
-##
+## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## If any of the following is violated, BinaryLang should generate an
+## exception:
 ## - Byte endianness can only be used with byte-multiple integers
 ## - Bit endianness must be uniform between **byte boundaries**
 ## - Spec must finish on a byte boundary
 ##
 ## .. code:: nim
-##
-##    createParser(myParser, bitEndian = n):
+##    createParser(parser, bitEndian = n):
 ##      b9: a # error: cannot apply byte endianness
 ##      r6: b # error: shares bits with previous byte
 ##      10: c # error: spec does not finish on a byte boundary
@@ -116,291 +82,270 @@
 ## Moreover, unaligned reads for strings are not supported:
 ##
 ## .. code:: nim
-##
-##     createParser(myParser):
-##       6: x
-##       s: y # invalid, generates an exception
+##    createParser(parser):
+##      6: x
+##      s: y # invalid, generates an exception
 ##
 ## Assertion
-## ~~~~~~~~~
-##
-## Use ``= expr`` for producing an exception if the parsed value doesn't
-## match ``expr``:
+## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Use `= expr` for producing an exception if the parsed value doesn't match
+## `expr`:
 ##
 ## .. code:: nim
-##
-##     s: x = "BinaryLang is awesome"
-##     8: y[5] = @[0, 1, 2, 3, 4]
+##    s: x = "BinaryLang is awesome"
+##    8: y[5] = @[0, 1, 2, 3, 4]
 ##
 ## Assertion can also be used in a special manner to terminate the previous
 ## field if it's a **string** or a **sequence indicated as magic-terminated**.
 ## This is discussed in later sections.
 ##
 ## Complex types
-## ~~~~~~~~~~~~~
-##
-## Instead of the described identifier for specifying ``Type``, you can
-## call a previously defined parser by using ``*`` followed by the name of
-## the parser. If your parser is parametric you must pass arguments to it
-## with standard call syntax.
+## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Instead of the described identifier for specifying type, you can call a
+## previously defined parser by using `*` followed by the name of the parser.
+## If your parser is parametric you must pass arguments to it with standard
+## call syntax.
 ##
 ## Example:
 ##
 ## .. code:: nim
+##    createParser(inner):
+##      32: a
+##      32: b
 ##
-##     createParser(inner):
-##       32: a
-##       32: b
+##    createParser(innerWithArgs, size: int32):
+##      32: a
+##      32: b[size]
 ##
-##     createParser(innerWithArgs, size: int32):
-##       32: a
-##       32: b[size]
-##
-##     createParser(outer):
-##       *inner: x
-##       *innerWithArgs(x.a): y
+##    createParser(outer):
+##      *inner: x
+##      *innerWithArgs(x.a): y
 ##
 ## Repetition
-## ~~~~~~~~~~
+## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## There are 3 ways to produce a `seq` of your type:
 ##
-## There are 3 ways to produce a ``seq`` of your ``Type``:
-##
-## - ``for``: append ``[expr]`` to the name for repeating ``expr``
-##   times
-## - ``until``: append ``{expr}`` to the name for repeating until
-##   ``expr`` is evaluated to ``true``
-## - ``magic``: enclose name with ``{}`` and use assertion with
-##   your **next** field
+## - `for`: append `[expr]` to the name for repeating `expr` times
+## - `until`: append `{expr}` to the name for repeating until `expr` is
+##   evaluated to `true`
+## - `magic`: enclose name with `{}` and use assertion with your **next** field
 ##
 ## .. code:: nim
-##
-##     8: a[5] # reads 5 8-bit integers
-##     8: b{_ == 103 or i > 9} # reads until it finds the value 103 or completes 10th iteration
-##     8: {c} # reads 8-bit integers until next field is matches
-##     16: _ = 0xABCD
-##     u8: {d[5]} # reads byte sequences each of length 5 until next field matches
-##     s: _ = "END"
+##    8: a[5] # reads 5 8-bit integers
+##    8: b{_ == 103 or i > 9} # reads until it finds the value 103 or
+##                            # completes 10th iteration
+##    8: {c} # reads 8-bit integers until next field is matches
+##    16: _ = 0xABCD
+##    u8: {d[5]} # reads byte sequences each of length 5 until next field
+##               # matches
+##    s: _ = "END"
 ##
 ## Also, the following symbols are defined implicitly:
+## - `i`: current iteration index
+## - `_`: last element read
 ##
-## - ``i``: current iteration index
-## - ``_``: last element read
-##
-## These can be leveraged even in other expressions than the expression for repetition itself;
-## for instance you can use them to parameterize a parser:
+## These can be leveraged even in other expressions than the expression for
+## repetition itself; for instance you can use them to parameterize a parser:
 ##
 ## .. code:: nim
-##
-##     createParser(inner, size: int):
-##       8: x[size]
-##     createParser(outer):
-##       32: amount
-##       32: sizes[amount]
-##       *inner(sizes[i]): complex[amount]
+##    createParser(inner, size: int):
+##      8: x[size]
+##    createParser(outer):
+##      32: amount
+##      32: sizes[amount]
+##      *inner(sizes[i]): complex[amount]
 ##
 ## With the above trick you can get a sequence of variable-length sequences.
 ##
-## Due to current limitations of the underlying bitstream implementation, to perform magic,
-## your stream must be aligned and all the reads involved must also be aligned. This will
-## be fixed in the future.
+## Due to current limitations of the underlying bitstream implementation, to
+## perform magic, your stream must be aligned and all the reads involved must
+## also be aligned. This will be fixed in the future.
 ##
 ## Substreams
-## ~~~~~~~~~~
-##
+## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ## Call syntax forces the creation of a substream:
 ##
 ## .. code:: nim
+##    createParser(aux, size: int):
+##      8: x[size]
+##    createParser(parser):
+##      8: x = 4
+##      8: limit = 8
+##      *aux(x): fixed(limit)
 ##
-##     createParser(aux, size: int):
-##       8: x[size]
-##     createParser(myParser):
-##       8: x = 4
-##       8: limit = 8
-##       *aux(x): fixed(limit)
+## In the above example, `limit` bytes (8 in this case) will be read from the
+## main `BitStream`. Then, a substream will be created out of them, which will
+## then be used as the stream for parsing `fixed`. Since `fixed` will only use
+## 4 of them, the remaining 4 will effectively be discarded.
 ##
-## In the above example, ``limit`` bytes (8 in this case) will be read from the main ``BitStream``.
-## Then, a substream will be created out of them, which will then be used as the stream for parsing ``fixed``.
-## Since ``fixed`` will only use 4 of them, the remaining 4 will effectively be discarded.
+## Note that unlike in the type, here size is counted in bytes. It is implied
+## that you cannot create a substream if your bitstream is unaligned.
 ##
-## Note that unlike in ``Type``, here size is counted in bytes. It is implied that you cannot create
-## a substream if your bitstream is unaligned.
-##
-## This feature is **not implemented for repetition** because it would increase complexity with little benefits.
-## The following syntax is **invalid** and instead you should use the technique with the auxiliary complex type shown above:
+## This feature is **not implemented for repetition** because it would increase
+## complexity with little benefits. The following syntax is **invalid** and
+## instead you should use the technique with the auxiliary complex type shown
+## above:
 ##
 ## .. code:: nim
-##
-##     createParser(myParser):
-##       u8: a[4](6) # does substream refer to each individual element or the whole sequence?
+##    createParser(parser):
+##      u8: a[4](6) # does substream refer to each individual element or the
+##                  # whole sequence?
 ##
 ## Strings
-## ~~~~~~~
-##
+## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ## Strings are special because they don't have a fixed size. Therefore, you
 ## must provide enough information regarding their termination. This can be
 ## achieved with one of the following:
-##
 ## - Use of substream
 ## - Assertion
 ## - Magic
 ##
 ## .. code:: nim
-##
-##     s: a # null/eos-terminated (because next field doesn't use assertion)
-##     s: b(5) # reads a string from a substream of 5 bytes until null/eos
-##     s: c = "ABC" # reads a string of length 3 that must match "ABC"
-##     s: d # reads a string until next field matches
-##     s: _ = "MAGIC"
-##     s: e[5] # reads 5 null-terminated strings
-##     s: {f} # reads null-terminated strings until next field matches
-##     8: term = 0xff # terminator of the above sequence
-##     s: {g[5]} # sequence of 5-length sequences of null-terminated strings
-##     s: _ = "END_NESTED"
+##    s: a # null/eos-terminated (because next field doesn't use assertion)
+##    s: b(5) # reads a string from a substream of 5 bytes until null/eos
+##    s: c = "ABC" # reads a string of length 3 that must match "ABC"
+##    s: d # reads a string until next field matches
+##    s: _ = "MAGIC"
+##    s: e[5] # reads 5 null-terminated strings
+##    s: {f} # reads null-terminated strings until next field matches
+##    8: term = 0xff # terminator of the above sequence
+##    s: {g[5]} # sequence of 5-length sequences of null-terminated strings
+##    s: _ = "END_NESTED"
 ##
 ## Rules:
-##
 ## - Strings are null/eos-terminated unless assertion is used on the same field
 ##   **or** on the next field
 ## - When using repetition, each string element is null-terminated
 ##
 ## Custom parser API
-## ~~~~~~~~~~~~~~~~~
-##
-## Since a BinaryLang parser is just a ``tuple[get: proc, set: proc]``,
-## you can write parsers by hand that are compatible with the DSL. Just be
-## sure that ``get`` and ``set`` have proper signatures:
+## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Since a BinaryLang parser is just a `tuple[get: proc, set: proc]`, you can
+## write parsers by hand that are compatible with the DSL. Just be sure that
+## `get` and `set` have proper signatures:
 ##
 ## .. code:: nim
-##
-##     proc get(s: BitStream): SomeType
-##     proc put(s: BitStream, input: SomeType)
-##     let parser = (get: get, put: put)
+##    proc get(s: BitStream): SomeType
+##    proc put(s: BitStream, input: SomeType)
+##    let parser = (get: get, put: put)
 ##
 ## If you want your custom parser to be parametric, simply append more
-## parameters to your procs. These extra parameters must be identical and
-## in the same order in the two procs.
-##
-## Example:
+## parameters to your procs. These extra parameters must be identical and in
+## the same order in the two procs:
 ##
 ## .. code:: nim
+##    proc get(s: BitStream, x: int, y: float): SomeType
+##    proc put(s: BitStream, input: SomeType, x: int, y: float)
+##    let parser = (get: get, put: put)
 ##
-##     proc get(s: BitStream, x: int, y: float): SomeType
-##     proc put(s: BitStream, input: SomeType, x: int, y: float)
-##     let parser = (get: get, put: put)
-##
-## Operations (plugins)
-## ~~~~~~~~~~~~~~~~~~~~
-##
+## Operations
+## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ## Operations can be applied to fields with the following syntax:
 ##
 ## .. code::
+##    type {op: expr}: name
 ##
-##     type {op: expr}: name
+## Operations act on data after the parsing and before the encoding
+## respectively. The big restriction here is that an operation cannot alter
+## the type, since the parsing/encoding type is always fixed.
 ##
-## Operations act on data after the parsing and before the encoding respectively.
-##
-## The big restriction here is that an operation cannot alter the type, since the parsing/encoding type is always fixed.
-##
-## An operation is nothing more than a pair of templates which follow a specific pattern:
-##
-## - The names of the templates **must** follow the pattern: [name of operation] + ``get``/``put``
+## An operation is nothing more than a pair of templates which follow a
+## specific pattern:
+## - The names of the templates **must** follow the pattern: `<operation>get`
+##   and `<operation>put`
 ## - They must have exactly 3 untyped parameters (you can name them as you wish):
 ##    - **parameter #1**: the field you operate on
 ##    - **parameter #2**: parsing/encoding statements
 ##    - **parameter #3**: expression provided
 ## 
 ## .. code:: nim
+##    template increaseGet(field, parse, num: untyped) =
+##      parse
+##      field += num
+##    template increasePut(field, encode, num: untyped) =
+##      field -= num
+##      encode
+##    createParser(myParser):
+##      64: x
+##      16 {increase: x}: y
 ##
-##     template increaseGet(field, parse, num: untyped) =
-##       parse
-##       field += num
-##     template increasePut(field, encode, num: untyped) =
-##       field -= num
-##       encode
-##     createParser(myParser):
-##       64: x
-##       16 {increase: x}: y
+## Note that in `increaseGet` we parse *before* operating on `field`, while in
+## `increasePut` we encode *after* operating on `field`.
 ##
-## Note that in ``increaseGet`` we parse *before* operating on ``field``, while in ``increasePut``
-## we encode *after* operating on ``field``.
-##
-## You can also apply more than one operations on one field, in which case they are chained
-## in the specified order, and there are some special rules:
-##
+## You can also apply more than one operations on one field, in which case they
+## are chained in the specified order, and there are some special rules:
 ## - only the **first** operation has 3 parameters as described above
-## - the rest **must** not have a parameter for parsing/encoding, since this is only done once
+## - the rest **must** not have a parameter for parsing/encoding, since this is
+##   only done once
 ##
 ## .. code:: nim
-##
-##     template condGet(field, parse, cond: untyped) =
-##       if cond:
-##         parse
-##     template condPut(field, encode, cond: untyped) =
-##       if cond:
-##         encode
-##     template increaseGet(field, num: untyped) =
-##       field += num
-##     template increasePut(field, num: untyped) =
-##       field -= num
-##     createParser(myParser):
-##       8: shouldParse
-##       64: x
-##       16 {cond: shouldParse.bool, increase: x}: y
+##    template condGet(field, parse, cond: untyped) =
+##      if cond:
+##        parse
+##    template condPut(field, encode, cond: untyped) =
+##      if cond:
+##        encode
+##    template increaseGet(field, num: untyped) =
+##      field += num
+##    template increasePut(field, num: untyped) =
+##      field -= num
+##    createParser(myParser):
+##      8: shouldParse
+##      64: x
+##      16 {cond: shouldParse.bool, increase: x}: y
 ##
 ## Properties
-## ~~~~~~~~~~
-##
-## Properties follow similar syntax to operations, but the name of the property must be prefixed with ``@``.
+## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Properties follow similar syntax to operations, but the name of the property
+## must be prefixed with ``@``.
 ##
 ## Properties are meant for making the interaction with the parsed data easier.
 ##
 ## There are two big differences compared to operations:
-## - They don't affect parsing/encoding - they only generate convenient procs
-## - They are built-in features, you cannot make your own without alterning binarylang
+## - They don't affect parsing/encoding - they only change the way the user
+##   interacts with data
+## - They are built-in features rather than user-defined language extensions
 ##
 ## The following properties are available:
 ## - set
 ## - get
 ## - hook
 ##
-## ``@set`` and ``@get`` allows you to get a different view of your data, hiding the underlying implementation.
-## This is particularly useful when the type used to parse the data differs from the one you want to use to interact with them in Nim.
+## `@set` and `@get` allows you to get a different view of your data, hiding
+## the underlying implementation. This is particularly useful when the type
+## used to parse the data differs from the one you want to use to interact with
+## them in Nim.
 ##
-## ``@hook`` allows you to run more code each time your field is mutated.
+## `@hook` allows you to run more code each time your field is mutated.
 ##
-## Using any of the properties: ``@set``, ``@get``, ``@hook`` forces the actual
-## name of the field to be generated with ``genSym``, thus hiding it from the user.
-## The specified name is then used for generating a pair of *getter*/*setter* procs.
-## This way the extra code run on access/mutation is transparent to the user.
+## Using any of the properties: `@set`, `@get`, `@hook` forces  the actual name
+## of the field to be generated with `genSym`, thus hiding it from the user.
+## The specified name is then used for generating a pair of *getter*/*setter*
+## procs. This way the extra code run on access/mutation is transparent to the
+## user.
 ##
 ## - in `@get`: `_` refers to the field
-## - in `@set` and in `@hook`: `_` refers to the value being assigned to the field
+## - in `@set` and in `@hook`: `_` refers to the value being assigned
+##   to the field
 ##
 ## .. code:: nim
-##     createParser(myParser):
-##       s {@get: _.parseInt, @set: $_}: myInt
+##    createParser(parser):
+##      s {@get: _.parseInt, @set: $_}: myInt
 ##
-##     var x: typeGetter(myParser)
-##     echo x.myInt + 42
-##     x.myInt = 24
+##    var x: Parser
+##    echo x.myInt + 42
+##    x.myInt = 24
 ##
 ## Special notes
-## ~~~~~~~~~~~~~
-##
-## - Nim expressions may contain *if applicable*:
+## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## - Nim expressions may contain:
 ##    - a previously defined field
 ##    - a parser parameter
-##    - the ``_`` symbol for *subject* element
-##    - the ``i`` symbol for current index in a repetition
-##    - the ``s`` symbol for accessing the bitstream
+##    - the `_` symbol for *subject* element (its meaning varies)
+##    - the `i` symbol for current index in a repetition
+##    - the `s` symbol for accessing the bitstream
 ##
-## These might conflict with your variables or fields, so you shouldn't use them for something else.
-##
-## BinaryLang is a complete rewrite of `binaryparse <https://github.com/PMunch/binaryparse>`_
-## by `PMunch <https://github.com/PMunch>`_ (special thanks).
-## The codebase is a lot cleaner and the bit fiddling has been extracted to a separate
-## library (`bitstreams <https://github.com/sealmove/bitstreams>`_) which BinaryLang depends on.
-## Moreover, a lot of features have been added, including a plugin system for user-defined language extensions!
+## `i` and `s` might conflict with your variables or fields, so you should
+## consider them reserved keywords and not use them for something else.
 
 import macros, tables, strutils, sugar, strformat
 import bitstreams
@@ -408,8 +353,7 @@ export bitstreams
 
 type
   MagicError* = object of Defect
-    ## Error raised from the parser procedure when a magic sequence is not
-    ## matching the specified value.
+  SyntaxError* = object of Defect
   Options = tuple
     endian: Endianness
     bitEndian: Endianness
@@ -447,6 +391,7 @@ type
     typ: Type
     trans: Transformations
     val: Value
+    symbol: NimNode
     magic: Field
   Variation = ref object
     case isElseBranch: bool:
@@ -465,11 +410,11 @@ const defaultOptions: Options = (
   endian: bigEndian,
   bitEndian: bigEndian)
 
-macro typeGetter*(body: typed): untyped =
-  ## Helper macro to get the return type of custom parsers
+macro typeGetter*(body: typed): untyped {.deprecated: "use type directly".} =
   body.getTypeImpl[0][1][0][0]
 
-proc syntaxError() = raise newException(Defect, "Invalid syntax")
+proc syntaxError() = raise newException(SyntaxError, "Syntax error")
+proc syntaxError(message: string) = raise newException(SyntaxError, message)
 
 proc getImpl(typ: Type): NimNode =
   case typ.kind
@@ -489,8 +434,8 @@ proc getImpl(typ: Type): NimNode =
   of kStr:
     result = ident"string"
   of kCustom:
-    var sym = typ.symbol
-    result = quote do: typeGetter(`sym`)
+    let sym = ident(typ.symbol.strVal.capitalizeAscii)
+    result = quote do: `sym`
 
 proc prefixFields(node: var NimNode, st, params: seq[string]; with: NimNode) =
   if node.kind == nnkIdent:
@@ -609,7 +554,7 @@ proc decodeType(t: NimNode, opts: Options): Type =
       result.args.add(t[i].copyNimTree)
       inc i
   else:
-    syntaxError()
+    syntaxError("Invalid type")
   result.endian = endian
   result.bitEndian = bitEndian
 
@@ -686,7 +631,10 @@ proc decodeHeader(input: seq[NimNode]): tuple[params: seq[NimNode], opts: Option
       else:
         raise newException(Defect, &"Unknown option: {$n[0]}")
     else:
-      syntaxError()
+      syntaxError("Invalid header syntax")
+
+proc isInterfaced(f: Field): bool =
+  f.trans.props.len > 0
 
 proc decodeField(def: NimNode, st: var seq[string], opts: Options): Field =
   var a, b, c: NimNode
@@ -704,9 +652,9 @@ proc decodeField(def: NimNode, st: var seq[string], opts: Options): Field =
         a = newCall(def[1][0].copyNimTree)
       of nnkCall:
         a = def[1][0].copyNimTree
-      else: syntaxError()
+      else: syntaxError("Invalid field syntax")
       b = def[1][1].copyNimTree
-    else: syntaxError()
+    else: syntaxError("Invalid field syntax")
   of nnkCall:
     a = def[0].copyNimTree
     c = def[1][0].copyNimTree
@@ -714,20 +662,14 @@ proc decodeField(def: NimNode, st: var seq[string], opts: Options): Field =
     a = def[0].copyNimTree
     b = def[1].copyNimTree
     c = def[2][0].copyNimTree
-  else: syntaxError()
+  else: syntaxError("Invalid field syntax")
   result = Field(
     typ: decodeType(a, opts),
     trans: decodeTransformations(b),
     val: decodeValue(c, st))
-
-proc isInterfaced(f: Field): bool =
-  f.trans.props.len > 0
-
-proc fieldIdent(f: Field): NimNode =
-  if f.isInterfaced:
-    genSym(nskField)
-  else:
-    ident(f.val.name)
+  result.symbol =
+    if result.isInterfaced: genSym(nskField)
+    else: ident(result.val.name)
 
 proc createReadStatement(sym, bs: NimNode, f: Field; st, params: seq[string]): NimNode {.compileTime.} =
   result = newStmtList()
@@ -877,7 +819,7 @@ proc createReadField(sym: NimNode; f: Field; bs: NimNode; st, params: seq[string
 proc createWriteField(sym: NimNode; f: Field; bs: NimNode; st, params: seq[string]): NimNode =
   result = newStmtList()
   let
-    ident = f.fieldIdent
+    ident = f.symbol
     input = ident"input"
     elem = if f.val.isMagic: genSym(nskForVar)
            else: sym
@@ -1021,14 +963,14 @@ proc generateWrite(sym: NimNode; f: Field; bs: NimNode, st, params: seq[string])
     result.add createWriteField(sym, f, bs, st, params)
 
 proc generateReader(fields: seq[Field]; fst, pst: seq[string]): NimNode =
-  result = newStmtList()
   let
     bs = ident"s"
     res = ident"result"
+  result = newStmtList()
   for f in fields:
     let
       rSym = genSym(nskVar)
-      ident = f.fieldIdent
+      ident = f.symbol
       field = ident.strVal
     var impl = f.typ.getImpl
     if f.val.repeat != rNo:
@@ -1065,7 +1007,7 @@ proc generateWriter(fields: seq[Field]; fst, pst: seq[string]): NimNode =
   for f in fields:
     let
       wSym = genSym(nskVar)
-      ident = f.fieldIdent
+      ident = f.symbol
       field = ident.strVal
     var impl = f.typ.getImpl
     if f.val.repeat != rNo:
@@ -1099,16 +1041,79 @@ proc generateWriter(fields: seq[Field]; fst, pst: seq[string]): NimNode =
     else:
       result.add(write)
 
+proc generateProperties(parserType: NimNode; f: Field;
+                        fst, pst: seq[string]): seq[NimNode] =
+  var getProp, setProp: NimNode
+  let
+    ident = f.symbol
+    objGet = genSym(nskParam)
+    targetField = newDotExpr(objGet, ident)
+  var expr: NimNode
+  if f.trans.props.hasKey("get"):
+    expr = f.trans.props["get"].copyNimTree
+    expr.replaceWith(ident"_", targetField)
+    expr.prefixFields(fst, pst, objGet)
+  else:
+    expr = targetField
+  getProp = newProc(
+    ident(f.val.name),
+    @[ident"auto",
+      newIdentDefs(objGet, parserType)],
+    expr)
+  result.add(getProp)
+  let
+    objPut = genSym(nskParam)
+    val = ident"x"
+    targetVal = newDotExpr(objPut, val)
+  if f.trans.props.hasKey("set"):
+    expr = f.trans.props["set"].copyNimTree
+    expr.replaceWith(ident"_", targetVal)
+    expr.prefixFields(fst, pst, objPut)
+  else:
+    expr = targetVal
+  setProp = newProc(
+    nnkAccQuoted.newTree(
+      ident(f.val.name),
+      ident"="),
+    @[newEmptyNode(),
+      newIdentDefs(objPut, nnkVarTy.newTree(parserType)),
+      newIdentDefs(val, ident"any")],
+    newStmtList(
+      newAssignment(
+        newDotExpr(objPut, ident),
+        expr)))
+  if f.trans.props.hasKey("hook"):
+    expr = f.trans.props["hook"].copyNimTree
+    expr.replaceWith(ident"_", targetVal)
+    expr.prefixFields(fst, pst, objPut)
+    setProp[6].insert(0, expr)
+  result.add(setProp)
+
 macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
-  ## The main macro in this module. It takes the ``name`` of the tuple to
-  ## create along with a block on the format described above and creates a
-  ## reader and a writer for it. The output is a tuple with ``name`` that has
-  ## two fields ``get`` and ``put``. Get is on the form
-  ## ``proc (bs: BitStream): tuple[<fields>]`` and put is
-  ## ``proc (bs: BitStream, input: tuple[<fields>])``
+  ## Input:
+  ## - `name`: the name of the parser tuple to create (must be lowercase)
+  ## - `rest`: **optionally** parser options and parameters
+  ## - `rest` (last): a block of the format described above
+  ##
+  ## Output:
+  ## - Object type declaration with name
+  ##   `tname` ≡ `capitalizeAscii(name)`
+  ## - Reader proc that returns an object of the type `tname`
+  ## - Writer proc that accepts an object of type `tname`
+  ## - A tuple named `name` with the fields `get` and `put`
+  ##
+  ## The procs are of the following form:
+  ##
+  ## .. code-block:: nim
+  ##   proc get(s: BitStream): `tname`
+  ##   proc put(s: BitStream, input: `tname`)
   result = newStmtList()
+  name.expectKind(nnkIdent)
+  if name.strVal[0].isUpperAscii:
+    syntaxError("Parser name must be lowercase")
+  let tname = ident(name.strVal.capitalizeAscii)
   var
-    tupleMeat = newTree(nnkTupleTy)
+    fieldDefs = newTree(nnkRecList)
     fieldsSymbolTable = newSeq[string]()
   let
     bs = ident"s"
@@ -1127,12 +1132,14 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
         raise newException(Defect,
           "Magic was used without assertion at the next field")
       fields[i].magic = fields[i+1]
-  let
-    reader = generateReader(fields, fieldsSymbolTable, paramsSymbolTable)
-    writer = generateWriter(fields, fieldsSymbolTable, paramsSymbolTable)
+  var reader = generateReader(fields, fieldsSymbolTable, paramsSymbolTable)
+  reader.insert(0, newAssignment(
+    ident"result",
+    newCall(tname)))
+  let writer = generateWriter(fields, fieldsSymbolTable, paramsSymbolTable)
   for f in fields:
     let
-      ident = f.fieldIdent
+      ident = f.symbol
       field = ident.strVal
     var impl = f.typ.getImpl
     if f.val.repeat != rNo:
@@ -1140,64 +1147,54 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
     if f.val.isMagic:
       impl = quote do: seq[`impl`]
     if field != "":
-      tupleMeat.add(newIdentDefs(ident, impl))
+      fieldDefs.add(
+        newIdentDefs(
+          if f.val.isExported: postfix(f.symbol, "*")
+          else: f.symbol,
+        impl))
+  result.add(
+    nnkTypeSection.newTree(
+      nnkTypeDef.newTree(
+        tname,
+        newEmptyNode(),
+        nnkRefTy.newTree(
+          nnkObjectTy.newTree(
+            newEmptyNode(),
+            newEmptyNode(),
+            fieldDefs)))))
+  for f in fields:
     if f.isInterfaced:
-      let
-        objGet = genSym(nskParam)
-        targetField = newDotExpr(objGet, ident)
-      var expr: NimNode
-      if f.trans.props.hasKey("get"):
-        expr = f.trans.props["get"]
-        expr.replaceWith(ident"_", targetField)
-        expr.prefixFields(fieldsSymbolTable, paramsSymbolTable, objGet)
-      else:
-        expr = targetField
       result.add(
-        newProc(
-          ident(f.val.name),
-          @[ident"auto",
-            newIdentDefs(objGet, tupleMeat)],
-          expr
-        )
-      )
-
-      let
-        objPut = genSym(nskParam)
-        val = ident"x"
-        targetVal = newDotExpr(objPut, val)
-      if f.trans.props.hasKey("set"):
-        expr = f.trans.props["set"]
-        expr.replaceWith(ident"_", targetVal)
-        expr.prefixFields(fieldsSymbolTable, paramsSymbolTable, objPut)
-      else:
-        expr = targetVal
-      result.add(
-        newProc(
-          nnkAccQuoted.newTree(
-            ident(f.val.name),
-            ident"="),
-          @[newEmptyNode(),
-            newIdentDefs(objPut, nnkVarTy.newTree(tupleMeat)),
-            newIdentDefs(val, ident"any")],
-          newAssignment(
-            newDotExpr(objPut, ident),
-            expr)))
+        generateProperties(
+          tname,
+          f,
+          fieldsSymbolTable,
+          paramsSymbolTable))
   let
     readerName = genSym(nskProc)
     writerName = genSym(nskProc)
-  if tupleMeat.len == 0:
-    let dummy = genSym(nskField)
-    tupleMeat.add(newIdentDefs(dummy, ident"int"))
-  result.add(quote do:
-    proc `readerName`(`bs`: BitStream): `tupleMeat` =
-      `reader`
-    proc `writerName`(`bs`: BitStream, `input`: `tupleMeat`) =
-      `writer`
-    let `name` = (get: `readerName`, put: `writerName`))
+  var
+    readerProcForwardDecl = quote do:
+      proc `readerName`(`bs`: BitStream): `tname`
+    writerProcForwardDecl = quote do:
+      proc `writerName`(`bs`: BitStream, `input`: `tname`)
+    readerProc = quote do:
+      proc `readerName`(`bs`: BitStream): `tname` =
+        `reader`
+    writerProc = quote do:
+      proc `writerName`(`bs`: BitStream, `input`: `tname`) =
+        `writer`
   for p in params:
-    result[0][^3][3].add p.copyNimTree
-    result[0][^2][3].add p.copyNimTree
-
+    readerProcForwardDecl[3].add p.copyNimTree
+    writerProcForwardDecl[3].add p.copyNimTree
+    readerProc[3].add p.copyNimTree
+    writerProc[3].add p.copyNimTree
+  result.add(quote do:
+    `readerProcForwardDecl`
+    `writerProcForwardDecl`
+    let `name` = (get: `readerName`, put: `writerName`)
+    `readerProc`
+    `writerProc`)
   when defined(BinaryLangEcho):
     echo repr result
 
@@ -1207,23 +1204,18 @@ proc decodeVariation(def: NimNode, st: seq[string], opts: Options): Variation =
     isElseBranch, isEmpty: bool
     cases: seq[NimNode]
     fields: seq[Field]
-
   if def[0].kind == nnkIdent:
     if not eqIdent(def[0], "_"):
-      syntaxError()
+      syntaxError("Missing parenthesis around branch expression")
     isElseBranch = true
-
   if def[1].len == 1 and def[1][0].kind == nnkNilLit:
     isEmpty = true
-
   result = Variation(isEmpty: isEmpty, isElseBranch: isElseBranch)
-
   if not isElseBranch:
     def[0].expectKind(nnkPar)
     for c in def[0]:
       cases.add(c.copyNimTree)
     result.cases = cases
-
   if not isEmpty:
     var symbolTable = st
     for f in def[1]:
@@ -1231,31 +1223,36 @@ proc decodeVariation(def: NimNode, st: seq[string], opts: Options): Variation =
     result.fields = fields
     result.st = st
 
-macro createVariantParser*(name, typ, disc: untyped; rest: varargs[untyped]): untyped =
-  ## This macro creates an object variant along with a variant parser
-  ## (equivelant to a variant/sum type) for that type.
+macro createVariantParser*(name, disc: untyped; rest: varargs[untyped]): untyped =
+  ## Input:
+  ## - `name`: the name of the parser tuple to create (must be lowercase)
+  ## - `disc`: the definition of the discriminator field (`name: type`)
+  ## - `rest`: **optionally** parser options and parameters
+  ## - `rest` (last): a block of the format described above
   ##
-  ## It takes the following mandatory arguments with must be first and in this
-  ## order:
-  ## - The name of the parser
-  ## - The name of the variant type
-  ## - The discriminator (``<name>: <type>``)
+  ## Output:
+  ## - **Variant** object type declaration with discriminator `disc` and name
+  ##   `tname` ≡ `capitalizeAscii(name)`
+  ## - Reader proc that returns an object of the type `tname`
+  ## - Writer proc that accepts an object of type `tname`
+  ## - A tuple named `name` with the fields `get` and `put`
   ##
-  ## And the following optional arguments:
-  ## - Parser options (``<name> = <value>``)
-  ## - Parameters (``<name>: <type>``)
+  ## The procs are of the following form:
   ##
-  ## The body is similar to that of ``createParser`` macro, but the fields are
+  ## .. code-block:: nim
+  ##   proc get(s: BitStream): `tname`
+  ##   proc put(s: BitStream, input: `tname`)
+  ##
+  ## The body is similar to that of `createParser` macro, but the fields are
   ## partitioned in branches. Each branch starts with one or more possible
   ## value of the discriminator in parenthesis, seperated by comma.
   ##
-  ## For covering the rest of the cases use the ``_`` symbol (without
+  ## For covering the rest of the cases use the `_` symbol (without
   ## parenthesis).
   ##
-  ## If you don't want a field for some branch, use ``nil`` on the right side.
+  ## If you don't want a field for some branch, use `nil` on the right side.
   ##
-  ## For exporting a symbol, prefix it with ``*`` (this also work for the
-  ## discriminator).
+  ## Example:
   ##
   ## .. code-block:: nim
   ##   createVariantParser(FooBar, FooBarTy, disc: int):
@@ -1266,15 +1263,20 @@ macro createVariantParser*(name, typ, disc: untyped; rest: varargs[untyped]): un
   ##       u8: b
   ##       *Bar: bar
   ##     _: u32: abc
+  result = newStmtList()
+  name.expectKind(nnkIdent)
+  disc.expectKind(nnkExprColonExpr)
+  if name.strVal[0].isUpperAscii:
+    syntaxError("Parser name must be lowercase")
   let
-    nameStr = name.strVal
+    input = ident"input"
+    bs = ident"s"
+    tname = ident(name.strVal.capitalizeAscii)
     discType = disc[1]
     (extraParams, parserOptions) = decodeHeader(rest[0 .. ^2])
-
   var
     discName: NimNode
     objectMeat = newTree(nnkRecCase)
-
   case disc[0].kind
   of nnkIdent:
     discName = disc[0]
@@ -1292,7 +1294,6 @@ macro createVariantParser*(name, typ, disc: untyped; rest: varargs[untyped]): un
         discType))
   else:
     syntaxError()
-
   let
     params = newIdentDefs(discName, discType) & extraParams
     paramsSymbolTable = collect(newSeq):
@@ -1301,7 +1302,6 @@ macro createVariantParser*(name, typ, disc: untyped; rest: varargs[untyped]): un
     variations = collect(newSeq):
       for def in rest[^1]:
         decodeVariation(def, paramsSymbolTable, parserOptions)
-
   for v in variations:
     let left =
       if v.isEmpty:
@@ -1314,11 +1314,10 @@ macro createVariantParser*(name, typ, disc: untyped; rest: varargs[untyped]): un
             impl = quote do: seq[`impl`]
           rl.add(
             newIdentDefs(
-              (if f.val.isExported: postfix(f.fieldIdent, "*")
-              else: f.fieldIdent),
+              if f.val.isExported: postfix(f.symbol, "*")
+              else: f.symbol,
               impl))
         rl
-
     if v.isElseBranch:
       objectMeat.add(
         nnkElse.newTree(left))
@@ -1327,28 +1326,31 @@ macro createVariantParser*(name, typ, disc: untyped; rest: varargs[untyped]): un
       branch.add(v.cases)
       branch.add(left)
       objectMeat.add(branch)
-
-  let decl = nnkTypeSection.newTree(
-    nnkTypeDef.newTree(
-      typ,
-      newEmptyNode(),
-      nnkRefTy.newTree(
-        nnkObjectTy.newTree(
-          newEmptyNode(),
-          newEmptyNode(),
-          nnkRecList.newTree(
-            objectMeat)))))
-
-  let getName = ident(nameStr & "Get")
-
-  var getParams: seq[NimNode]
-  getParams.add(typ)
-  getParams.add(newIdentDefs(ident"s", ident"BitStream"))
-  getParams.add(params)
-
-  let res = ident"result"
+  result.add(
+    nnkTypeSection.newTree(
+      nnkTypeDef.newTree(
+        tname,
+        newEmptyNode(),
+        nnkRefTy.newTree(
+          nnkObjectTy.newTree(
+            newEmptyNode(),
+            newEmptyNode(),
+            nnkRecList.newTree(
+              objectMeat))))))
+  for v in variations:
+    if not v.isEmpty:
+      for f in v.fields:
+        if f.isInterfaced:
+          result.add(
+            generateProperties(
+              tname,
+              f,
+              v.st,
+              paramsSymbolTable))
+  let readerName = genSym(nskProc)
   var getCaseStmt = nnkCaseStmt.newTree(discName)
-
+  let readerProcForwardDecl = quote do:
+    proc `readerName`(`bs`: BitStream): `tname`
   for v in variations:
     let inner =
       if v.isEmpty:
@@ -1363,31 +1365,22 @@ macro createVariantParser*(name, typ, disc: untyped; rest: varargs[untyped]): un
         branch.add(b)
       branch.add(inner)
       getCaseStmt.add(branch)
-
-  let getBody = newStmtList(
+  let reader = newStmtList(
     newAssignment(
-      res,
+      ident"result",
       nnkObjConstr.newTree(
-        typ,
+        tname,
         newColonExpr(
           discName,
           discName))),
     getCaseStmt)
-
-  let get = newProc(getName, getParams, getBody)
-
-  let
-    putName = ident(nameStr & "Put")
-    input = ident"input"
-
-  var putParams: seq[NimNode]
-  putParams.add(newEmptyNode())
-  putParams.add(newIdentDefs(ident"s", ident"BitStream"))
-  putParams.add(newIdentDefs(input, typ))
-  putParams.add(params)
-
-  var putBody = nnkCaseStmt.newTree(discName)
-
+  var readerProc = quote do:
+    proc `readerName`(`bs`: BitStream): `tname` =
+      `reader`
+  let writerName = genSym(nskProc)
+  var writerProcForwardDecl = quote do:
+    proc `writerName`(`bs`: BitStream, `input`: `tname`)
+  var writer = nnkCaseStmt.newTree(discName)
   for v in variations:
     let inner =
       if v.isEmpty:
@@ -1395,21 +1388,26 @@ macro createVariantParser*(name, typ, disc: untyped; rest: varargs[untyped]): un
       else:
         generateWriter(v.fields, v.st, paramsSymbolTable)
     if v.isElseBranch:
-      putBody.add(nnkElse.newTree(inner))
+      writer.add(nnkElse.newTree(inner))
     else:
       var branch = newTree(nnkOfBranch)
       for b in v.cases:
         branch.add(b)
       branch.add(inner)
-      putBody.add(branch)
-
-  let put = newProc(putName, putParams, putBody)
-
-  result = quote do:
-    `decl`
-    `get`
-    `put`
-    let `name` = (get: `getName`, put: `putName`)
-
+      writer.add(branch)
+  var writerProc = quote do:
+    proc `writerName`(`bs`: BitStream, `input`: `tname`) =
+      `writer`
+  for p in params:
+    readerProcForwardDecl[3].add p.copyNimTree
+    writerProcForwardDecl[3].add p.copyNimTree
+    readerProc[3].add p.copyNimTree
+    writerProc[3].add p.copyNimTree
+  result.add(quote do:
+    `readerProcForwardDecl`
+    `writerProcForwardDecl`
+    let `name` = (get: `readerName`, put: `writerName`)
+    `readerProc`
+    `writerProc`)
   when defined(BinaryLangEcho):
     echo repr result

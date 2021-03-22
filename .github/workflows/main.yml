@@ -16,9 +16,10 @@ jobs:
     - name: Generate documentation
       run: |
         nim doc -o:docs/index.html binarylang.nim
-        nim rst2html tutorial.rst
-        mv htmldocs/* docs/
-        rmdir htmldocs
+        nim rst2html docs/tutorial.rst
+        nim rst2html docs/changelog.rst
+        mv docs/htmldocs/* docs/
+        rmdir docs/htmldocs
     - name: Commit documentation
       run: |
         git config --global user.name 'Stefanos Mandalas'
