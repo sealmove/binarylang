@@ -1067,13 +1067,12 @@ proc generateProperties(parserType: NimNode; f: Field;
   let
     objPut = genSym(nskParam)
     val = ident"x"
-    targetVal = newDotExpr(objPut, val)
   if f.trans.props.hasKey("set"):
     expr = f.trans.props["set"].copyNimTree
-    expr.replaceWith(ident"_", targetVal)
+    expr.replaceWith(ident"_", val)
     expr.prefixFields(fst, pst, objPut)
   else:
-    expr = targetVal
+    expr = val
   setProp = newProc(
     nnkAccQuoted.newTree(
       ident(f.val.name),
@@ -1087,7 +1086,7 @@ proc generateProperties(parserType: NimNode; f: Field;
         expr)))
   if f.trans.props.hasKey("hook"):
     expr = f.trans.props["hook"].copyNimTree
-    expr.replaceWith(ident"_", targetVal)
+    expr.replaceWith(ident"_", val)
     expr.prefixFields(fst, pst, objPut)
     setProp[6].insert(0, expr)
   result.add(setProp)
