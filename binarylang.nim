@@ -4,7 +4,7 @@
 ## - `createParser` which is used to produce a *product parser*
 ## - `createVariantParser` which is used to produce a *sum parser*
 ##
-## Both of these macro generate a type declaration and a
+## Both of these macros generate a type declaration and a
 ## `tuple[get: proc, put: proc]`:
 ## - `get` returns an object with each parsed field
 ## - `put` writes an object to a stream
@@ -221,11 +221,13 @@
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ## Since a BinaryLang parser is just a `tuple[get: proc, set: proc]`, you can
 ## write parsers by hand that are compatible with the DSL. Just be sure that
-## `get` and `set` have proper signatures:
+## `get` and `set` have proper signatures, and there is a type with the same
+## name as your parser but capitalized:
 ##
 ## .. code:: nim
-##    proc get(s: BitStream): SomeType
-##    proc put(s: BitStream, input: SomeType)
+##    type Parser = SomeType
+##    proc get(s: BitStream): Parser
+##    proc put(s: BitStream, input: Parser)
 ##    let parser = (get: get, put: put)
 ##
 ## If you want your custom parser to be parametric, simply append more
@@ -233,8 +235,9 @@
 ## the same order in the two procs:
 ##
 ## .. code:: nim
-##    proc get(s: BitStream, x: int, y: float): SomeType
-##    proc put(s: BitStream, input: SomeType, x: int, y: float)
+##    type Parser = SomeType
+##    proc get(s: BitStream, x: int, y: float): Parser
+##    proc put(s: BitStream, input: Parser, x: int, y: float)
 ##    let parser = (get: get, put: put)
 ##
 ## Operations
@@ -1255,14 +1258,14 @@ macro createVariantParser*(name, disc: untyped; rest: varargs[untyped]): untyped
   ## Example:
   ##
   ## .. code-block:: nim
-  ##   createVariantParser(FooBar, FooBarTy, disc: int):
-  ##     (0): *Foo: foo
-  ##     (1, 3): u32: *a
+  ##   createVariantParser(fooBar, disc: int):
+  ##     (0): *foo: a
+  ##     (1, 3): u32: *b
   ##     (2): nil
   ##     (4):
-  ##       u8: b
-  ##       *Bar: bar
-  ##     _: u32: abc
+  ##       u8: c
+  ##       *bar: d
+  ##     _: u32: e
   result = newStmtList()
   name.expectKind(nnkIdent)
   disc.expectKind(nnkExprColonExpr)
