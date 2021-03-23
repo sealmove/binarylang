@@ -11,5 +11,5 @@ templates, and configure the way you interact with your data.
 
 ## Documentation
 - [User guide](https://sealmove.github.io/binarylang/)
-- [Tutorial](https://sealmove.github.io/binarylang/tutorial)
-- [Changelog](https://sealmove.github.io/binarylang/changelog)
+- [Tutorial](https://sealmove.github.io/binarylang/tutorial.html)
+- [Changelog](https://sealmove.github.io/binarylang/changelog.html)
