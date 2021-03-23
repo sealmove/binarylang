@@ -676,7 +676,7 @@ proc decodeField(def: NimNode, st: var seq[string], opts: Options):
     trans: decodeTransformations(b),
     val: decodeValue(c, st))
   result.symbol =
-    if result.isInterfaced: genSym(nskField)
+    if result.isInterfaced: ident(result.val.name & "Impl")
     else: ident(result.val.name)
 
 proc createReadStatement(sym, bs: NimNode; f: Field; st, params: seq[string]):
