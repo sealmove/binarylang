@@ -1182,12 +1182,9 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
             fieldDefs)))))
   for f in fields:
     if f.isInterfaced:
-      var typName = tname.copyNimTree
-      if f.val.repeat != rNo:
-        typName = quote do: seq[`typName`]
       result.add(
         generateProperties(
-          typName,
+          tname,
           f,
           fieldsSymbolTable,
           paramsSymbolTable))
@@ -1363,12 +1360,9 @@ macro createVariantParser*(name, disc: untyped; rest: varargs[untyped]): untyped
     if not v.isEmpty:
       for f in v.fields:
         if f.isInterfaced:
-          var typName = tname
-          if f.val.repeat != rNo:
-            typName = quote do: seq[`typName`]
           result.add(
             generateProperties(
-              typName,
+              tname,
               f,
               v.st,
               paramsSymbolTable))
