@@ -419,7 +419,7 @@ macro typeGetter*(body: typed): untyped {.deprecated: "use type directly".} =
 proc syntaxError() = raise newException(SyntaxError, "Syntax error")
 proc syntaxError(message: string) = raise newException(SyntaxError, message)
 
-proc getImpl(typ: Type): NimNode =
+proc getImpl(typ: Type): NimNode {.compileTime.} =
   case typ.kind
   of kInt, kUInt:
     var s = ""
@@ -440,7 +440,8 @@ proc getImpl(typ: Type): NimNode =
     let sym = ident(typ.symbol.strVal.capitalizeAscii)
     result = quote do: `sym`
 
-proc prefixFields(node: var NimNode, st, params: seq[string]; with: NimNode) =
+proc prefixFields(node: var NimNode, st, params: seq[string];
+                  with: NimNode) {.compileTime.} =
   if node.kind == nnkIdent:
     if node.strVal in st and node.strVal notin params:
       node = newDotExpr(with, node)
@@ -460,19 +461,21 @@ proc prefixFields(node: var NimNode, st, params: seq[string]; with: NimNode) =
       node[i] = n.copyNimTree
       inc i
 
-proc getCustomReader(typ: Type, bs: NimNode, st, params: seq[string]): NimNode =
+proc getCustomReader(typ: Type; bs: NimNode; st, params: seq[string]):
+ NimNode {.compileTime.} =
   result = newCall(nnkDotExpr.newTree(typ.symbol, ident"get"), bs)
   for arg in typ.args:
     result.add(arg.copyNimTree)
   result.prefixFields(st, params, ident"result")
 
-proc getCustomWriter(typ: Type, bs: NimNode, st, params: seq[string]): NimNode =
+proc getCustomWriter(typ: Type; bs: NimNode; st, params: seq[string]):
+ NimNode {.compileTime.} =
   result = newCall(nnkDotExpr.newTree(typ.symbol, ident"put"), bs)
   for arg in typ.args:
     result.add(arg.copyNimTree)
   result.prefixFields(st, params, ident"input")
 
-proc replaceWith(node: var NimNode; what, with: NimNode) =
+proc replaceWith(node: var NimNode; what, with: NimNode) {.compileTime.} =
   if node.kind == nnkIdent:
     if eqIdent(node, what):
       node = with.copyNimTree
@@ -484,7 +487,7 @@ proc replaceWith(node: var NimNode; what, with: NimNode) =
       node[i] = n
       inc i
 
-proc decodeType(t: NimNode, opts: Options): Type =
+proc decodeType(t: NimNode, opts: Options): Type {.compileTime.} =
   var t = t
   result = Type()
   var
@@ -561,7 +564,7 @@ proc decodeType(t: NimNode, opts: Options): Type =
   result.endian = endian
   result.bitEndian = bitEndian
 
-proc decodeTransformations(node: NimNode): Transformations =
+proc decodeTransformations(node: NimNode): Transformations {.compileTime.} =
   result = Transformations()
   for child in node:
     if child[0].kind == nnkIdent:
@@ -569,7 +572,7 @@ proc decodeTransformations(node: NimNode): Transformations =
     else:
       result.props[child[0][1].strVal] = child[1].copyNimTree
 
-proc decodeValue(node: NimNode, st: var seq[string]): Value =
+proc decodeValue(node: NimNode, st: var seq[string]): Value {.compileTime.} =
   var node = node
   result = Value()
   while node.kind != nnkIdent:
@@ -600,7 +603,8 @@ proc decodeValue(node: NimNode, st: var seq[string]): Value =
     result.name = node.strVal
     st.add(result.name)
 
-proc decodeHeader(input: seq[NimNode]): tuple[params: seq[NimNode], opts: Options] =
+proc decodeHeader(input: seq[NimNode]):
+ tuple[params: seq[NimNode], opts: Options] {.compileTime.} =
   result.opts = defaultOptions
   var specifiedOpts: set[OptionSet]
   for n in input:
@@ -636,10 +640,11 @@ proc decodeHeader(input: seq[NimNode]): tuple[params: seq[NimNode], opts: Option
     else:
       syntaxError("Invalid header syntax")
 
-proc isInterfaced(f: Field): bool =
+proc isInterfaced(f: Field): bool {.compileTime.} =
   f.trans.props.len > 0
 
-proc decodeField(def: NimNode, st: var seq[string], opts: Options): Field =
+proc decodeField(def: NimNode, st: var seq[string], opts: Options):
+ Field {.compileTime.} =
   var a, b, c: NimNode
   case def.kind
   of nnkPrefix:
@@ -674,7 +679,8 @@ proc decodeField(def: NimNode, st: var seq[string], opts: Options): Field =
     if result.isInterfaced: genSym(nskField)
     else: ident(result.val.name)
 
-proc createReadStatement(sym, bs: NimNode, f: Field; st, params: seq[string]): NimNode {.compileTime.} =
+proc createReadStatement(sym, bs: NimNode; f: Field; st, params: seq[string]):
+ NimNode {.compileTime.} =
   result = newStmtList()
   let
     kind = f.typ.kind
@@ -734,7 +740,8 @@ proc createReadStatement(sym, bs: NimNode, f: Field; st, params: seq[string]): N
     let call = getCustomReader(f.typ, bs, st, params)
     result.add(quote do: `sym` = `call`)
 
-proc createWriteStatement(f: Field, sym, bs: NimNode; st, params: seq[string]): NimNode {.compileTime.} =
+proc createWriteStatement(f: Field, sym, bs: NimNode; st, params: seq[string]):
+ NimNode {.compileTime.} =
   result = newStmtList()
   let
     kind = f.typ.kind
@@ -776,7 +783,8 @@ proc createWriteStatement(f: Field, sym, bs: NimNode; st, params: seq[string]): 
     call.insert(2, sym)
     result.add(quote do: `call`)
 
-proc createReadField(sym: NimNode; f: Field; bs: NimNode; st, params: seq[string]): NimNode =
+proc createReadField(sym: NimNode; f: Field; bs: NimNode;
+                     st, params: seq[string]): NimNode {.compileTime.} =
   result = newStmtList()
   let
     res = ident"result"
@@ -819,7 +827,8 @@ proc createReadField(sym: NimNode; f: Field; bs: NimNode; st, params: seq[string
               break)
     else: discard
 
-proc createWriteField(sym: NimNode; f: Field; bs: NimNode; st, params: seq[string]): NimNode =
+proc createWriteField(sym: NimNode; f: Field; bs: NimNode;
+                      st, params: seq[string]): NimNode {.compileTime.} =
   result = newStmtList()
   let
     ident = f.symbol
@@ -861,7 +870,8 @@ proc createWriteField(sym: NimNode; f: Field; bs: NimNode; st, params: seq[strin
   else:
     result.add(writeStmts)
 
-proc generateRead(sym: NimNode; f: Field; bs: NimNode; st, params: seq[string]): NimNode =
+proc generateRead(sym: NimNode; f: Field; bs: NimNode;
+                  st, params: seq[string]): NimNode {.compileTime.} =
   result = newStmtList()
   let
     res = ident"result"
@@ -948,7 +958,8 @@ proc generateRead(sym: NimNode; f: Field; bs: NimNode; st, params: seq[string]):
           raise newException(MagicError, "field '" & $`field` & "' was " &
                             $`sym` & " instead of " & $`value`))
 
-proc generateWrite(sym: NimNode; f: Field; bs: NimNode, st, params: seq[string]): NimNode =
+proc generateWrite(sym: NimNode; f: Field; bs: NimNode;
+                   st, params: seq[string]): NimNode {.compileTime.} =
   result = newStmtList()
   let input = ident"input"
   if f.val.sizeExpr != nil:
@@ -965,7 +976,8 @@ proc generateWrite(sym: NimNode; f: Field; bs: NimNode, st, params: seq[string])
   else:
     result.add createWriteField(sym, f, bs, st, params)
 
-proc generateReader(fields: seq[Field]; fst, pst: seq[string]): NimNode =
+proc generateReader(fields: seq[Field]; fst, pst: seq[string]):
+ NimNode {.compileTime.} =
   let
     bs = ident"s"
     res = ident"result"
@@ -973,7 +985,7 @@ proc generateReader(fields: seq[Field]; fst, pst: seq[string]): NimNode =
   for f in fields:
     let
       rSym = genSym(nskVar)
-      ident = f.symbol
+      ident = f.symbol.copyNimTree
       field = ident.strVal
     var impl = f.typ.getImpl
     if f.val.repeat != rNo:
@@ -1002,7 +1014,8 @@ proc generateReader(fields: seq[Field]; fst, pst: seq[string]): NimNode =
       result.add(quote do:
         result.`ident` = `rSym`)
 
-proc generateWriter(fields: seq[Field]; fst, pst: seq[string]): NimNode =
+proc generateWriter(fields: seq[Field]; fst, pst: seq[string]):
+ NimNode {.compileTime.} =
   result = newStmtList()
   let
     bs = ident"s"
@@ -1010,15 +1023,18 @@ proc generateWriter(fields: seq[Field]; fst, pst: seq[string]): NimNode =
   for f in fields:
     let
       wSym = genSym(nskVar)
-      ident = f.symbol
+      ident = f.symbol.copyNimTree
       field = ident.strVal
     var impl = f.typ.getImpl
     if f.val.repeat != rNo:
       impl = quote do: seq[`impl`]
     if f.val.isMagic:
       impl = quote do: seq[`impl`]
-    let value = if field == "": (if f.val.valueExpr == nil: nil else: f.val.valueExpr)
-                else: quote do: `input`.`ident`
+    let value =
+      if field == "":
+        if f.val.valueExpr == nil: nil
+        else: f.val.valueExpr.copyNimTree
+      else: quote do: `input`.`ident`
     result.add(
       if value == nil:
         quote do:
@@ -1045,7 +1061,7 @@ proc generateWriter(fields: seq[Field]; fst, pst: seq[string]): NimNode =
       result.add(write)
 
 proc generateProperties(parserType: NimNode; f: Field;
-                        fst, pst: seq[string]): seq[NimNode] =
+                        fst, pst: seq[string]): seq[NimNode] {.compileTime.} =
   var getProp, setProp: NimNode
   let
     ident = f.symbol
@@ -1166,9 +1182,12 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
             fieldDefs)))))
   for f in fields:
     if f.isInterfaced:
+      var typName = tname.copyNimTree
+      if f.val.repeat != rNo:
+        typName = quote do: seq[`typName`]
       result.add(
         generateProperties(
-          tname,
+          typName,
           f,
           fieldsSymbolTable,
           paramsSymbolTable))
@@ -1200,7 +1219,8 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
   when defined(BinaryLangEcho):
     echo repr result
 
-proc decodeVariation(def: NimNode, st: seq[string], opts: Options): Variation =
+proc decodeVariation(def: NimNode, st: seq[string], opts: Options):
+ Variation {.compileTime.} =
   def.expectKind(nnkCall)
   var
     isElseBranch, isEmpty: bool
@@ -1343,9 +1363,12 @@ macro createVariantParser*(name, disc: untyped; rest: varargs[untyped]): untyped
     if not v.isEmpty:
       for f in v.fields:
         if f.isInterfaced:
+          var typName = tname
+          if f.val.repeat != rNo:
+            typName = quote do: seq[`typName`]
           result.add(
             generateProperties(
-              tname,
+              typName,
               f,
               v.st,
               paramsSymbolTable))
