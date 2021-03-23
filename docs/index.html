@@ -95,7 +95,6 @@ function main() {
 <li><a class="reference" id="parser-parameters_toc" href="#parser-parameters">Parser parameters</a></li>
 <li><a class="reference" id="dsl_toc" href="#dsl">DSL</a></li>
 <ul class="simple"><li><a class="reference" id="dsl-type_toc" href="#dsl-type">Type</a></li>
-<li><a class="reference" id="dsl-value_toc" href="#dsl-value">Value</a></li>
 <li><a class="reference" id="dsl-alignment_toc" href="#dsl-alignment">Alignment</a></li>
 <li><a class="reference" id="dsl-assertion_toc" href="#dsl-assertion">Assertion</a></li>
 <li><a class="reference" id="dsl-complex-types_toc" href="#dsl-complex-types">Complex types</a></li>
@@ -103,13 +102,16 @@ function main() {
 <li><a class="reference" id="dsl-substreams_toc" href="#dsl-substreams">Substreams</a></li>
 <li><a class="reference" id="dsl-strings_toc" href="#dsl-strings">Strings</a></li>
 <li><a class="reference" id="dsl-custom-parser-api_toc" href="#dsl-custom-parser-api">Custom parser API</a></li>
-<li><a class="reference" id="dsl-operations-plugins_toc" href="#dsl-operations-plugins">Operations (plugins)</a></li>
+<li><a class="reference" id="dsl-operations_toc" href="#dsl-operations">Operations</a></li>
+<li><a class="reference" id="dsl-properties_toc" href="#dsl-properties">Properties</a></li>
 <li><a class="reference" id="dsl-special-notes_toc" href="#dsl-special-notes">Special notes</a></li>
 </ul><li>
   <a class="reference reference-toplevel" href="#7" id="57">Types</a>
   <ul class="simple simple-toc-section">
       <li><a class="reference" href="#MagicError"
     title="MagicError = object of Defect">MagicError</a></li>
+  <li><a class="reference" href="#SyntaxError"
+    title="SyntaxError = object of Defect">SyntaxError</a></li>
 
   </ul>
 </li>
@@ -120,8 +122,8 @@ function main() {
     title="typeGetter(body: typed): untyped">typeGetter</a></li>
   <li><a class="reference" href="#createParser.m%2Cuntyped%2Cvarargs%5Buntyped%5D"
     title="createParser(name: untyped; rest: varargs[untyped]): untyped">createParser</a></li>
-  <li><a class="reference" href="#createVariantParser.m%2Cuntyped%2Cuntyped%2Cuntyped%2Cvarargs%5Buntyped%5D"
-    title="createVariantParser(name, typ, disc: untyped; rest: varargs[untyped]): untyped">createVariantParser</a></li>
+  <li><a class="reference" href="#createVariantParser.m%2Cuntyped%2Cuntyped%2Cvarargs%5Buntyped%5D"
+    title="createVariantParser(name, disc: untyped; rest: varargs[untyped]): untyped">createVariantParser</a></li>
 
   </ul>
 </li>
@@ -134,27 +136,12 @@ function main() {
   
   <p class="module-desc"><p>BinaryLang is a DSL for creating binary parsers/encoders.</p>
 <p>It exports two macros:</p>
-<ul class="simple"><li><tt class="docutils literal"><span class="pre">createParser</span></tt> which is used for <em>product types</em> (tuples)</li>
-<li><tt class="docutils literal"><span class="pre">createVariantParser</span></tt> which is used for <em>sum types</em> (object variants)</li>
+<ul class="simple"><li><tt class="docutils literal"><span class="pre">createParser</span></tt> which is used to produce a <em>product parser</em></li>
+<li><tt class="docutils literal"><span class="pre">createVariantParser</span></tt> which is used to produce a <em>sum parser</em></li>
 </ul>
-<p>Both of these macro generate a <tt class="docutils literal"><span class="pre">tuple[get: proc, put: proc]</span></tt>:</p>
-<ul class="simple"><li><tt class="docutils literal"><span class="pre">get</span></tt> returns a tuple with each parsed field</li>
-<li><tt class="docutils literal"><span class="pre">put</span></tt> writes a compatible tuple to a stream</li>
-</ul>
-<p><tt class="docutils literal"><span class="pre">createVariantParser</span></tt> additionally creates an object variant type.</p>
-<p><tt class="docutils literal"><span class="pre">createParser</span></tt> accepts 4 kind of things:</p>
-<ul class="simple"><li>Name of the parser tuple</li>
-<li>Parser options (optional)</li>
-<li>Parser parameters (optional)</li>
-<li>Block with DSL statements</li>
-</ul>
-<p><tt class="docutils literal"><span class="pre">createVariantParser</span></tt> accepts 6 kind of things:</p>
-<ul class="simple"><li>Name of the parser tuple</li>
-<li>Name of the object variant type</li>
-<li>Discriminator</li>
-<li>Parser options (optional)</li>
-<li>Parser parameters (optional)</li>
-<li>Block with DSL statements</li>
+<p>Both of these macros generate a type declaration and a <tt class="docutils literal"><span class="pre">tuple[get: proc, put: proc]</span></tt>:</p>
+<ul class="simple"><li><tt class="docutils literal"><span class="pre">get</span></tt> returns an object with each parsed field</li>
+<li><tt class="docutils literal"><span class="pre">put</span></tt> writes an object to a stream</li>
 </ul>
 
 <h1><a class="toc-backref" id="parser-options" href="#parser-options">Parser options</a></h1><p>Each specified option must be in the form <tt class="docutils literal"><span class="pre">option = value</span></tt>:</p>
@@ -179,7 +166,7 @@ function main() {
 <h1><a class="toc-backref" id="parser-parameters" href="#parser-parameters">Parser parameters</a></h1><p>Each parameter must be in the form <tt class="docutils literal"><span class="pre">symbol: type</span></tt>. The generated <tt class="docutils literal"><span class="pre">get</span></tt>/<tt class="docutils literal"><span class="pre">put</span></tt> procs will then have this additional parameter appended.</p>
 
 <h1><a class="toc-backref" id="dsl" href="#dsl">DSL</a></h1><p>Each statement corresponds to 1 field. The general syntax is:</p>
-<pre class="listing"><span class="Keyword">Type</span> <span class="Punctuation">{</span><span class="Identifier">Operations</span><span class="Punctuation">}</span><span class="Punctuation">:</span> <span class="Identifier">Value</span></pre><p>where <tt class="docutils literal"><span class="pre">{Operations}</span></tt> is optional and refers to a plugin system (see below).</p>
+<pre class="listing">type {plugin: expr, ...}: name (...)</pre><p>For the name you use <tt class="docutils literal"><span class="pre">_</span></tt> to discard the field, or prepend it with <tt class="docutils literal"><span class="pre">*</span></tt> to export it.</p>
 
 <h2><a class="toc-backref" id="dsl-type" href="#dsl-type">Type</a></h2><p>The <strong>kind</strong>, <strong>endianness</strong> and <strong>size</strong> are encoded in a identifier made up of:</p>
 <ul class="simple"><li><dl class="docutils"><dt>1 optional letter specifying the kind:</dt>
@@ -220,31 +207,23 @@ function main() {
 </ul>
 <p>You can order options however you want, but size must come last (e.g. <tt class="docutils literal"><span class="pre">lru16</span></tt> and <tt class="docutils literal"><span class="pre">url16</span></tt> are valid but not <tt class="docutils literal"><span class="pre">16lru</span></tt>).</p>
 
-<h2><a class="toc-backref" id="dsl-value" href="#dsl-value">Value</a></h2><p>This section includes the following features (only name is mandatory):</p>
-<ul class="simple"><li>name</li>
-<li>repetition</li>
-<li>assertion</li>
-</ul>
-<p>If you don't <em>really</em> want a name, you can discard the symbol by using <tt class="docutils literal"><span class="pre">_</span></tt> in its place:</p>
-<pre class="listing"><span class="Identifier">createParser</span><span class="Punctuation">(</span><span class="Identifier">myParser</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
-  <span class="DecNumber">8</span><span class="Punctuation">:</span> <span class="Identifier">_</span></pre>
 <h2><a class="toc-backref" id="dsl-alignment" href="#dsl-alignment">Alignment</a></h2><p>If any of the following is violated, BinaryLang should generate an exception:</p>
 <ul class="simple"><li>Byte endianness can only be used with byte-multiple integers</li>
 <li>Bit endianness must be uniform between <strong>byte boundaries</strong></li>
 <li>Spec must finish on a byte boundary</li>
 </ul>
-<pre class="listing"><span class="Identifier">createParser</span><span class="Punctuation">(</span><span class="Identifier">myParser</span><span class="Punctuation">,</span> <span class="Identifier">bitEndian</span> <span class="Operator">=</span> <span class="Identifier">n</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
+<pre class="listing"><span class="Identifier">createParser</span><span class="Punctuation">(</span><span class="Identifier">parser</span><span class="Punctuation">,</span> <span class="Identifier">bitEndian</span> <span class="Operator">=</span> <span class="Identifier">n</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
   <span class="Identifier">b9</span><span class="Punctuation">:</span> <span class="Identifier">a</span> <span class="Comment"># error: cannot apply byte endianness</span>
   <span class="Identifier">r6</span><span class="Punctuation">:</span> <span class="Identifier">b</span> <span class="Comment"># error: shares bits with previous byte</span>
   <span class="DecNumber">10</span><span class="Punctuation">:</span> <span class="Identifier">c</span> <span class="Comment"># error: spec does not finish on a byte boundary</span></pre><p>Moreover, unaligned reads for strings are not supported:</p>
-<pre class="listing"><span class="Identifier">createParser</span><span class="Punctuation">(</span><span class="Identifier">myParser</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
+<pre class="listing"><span class="Identifier">createParser</span><span class="Punctuation">(</span><span class="Identifier">parser</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
   <span class="DecNumber">6</span><span class="Punctuation">:</span> <span class="Identifier">x</span>
   <span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">y</span> <span class="Comment"># invalid, generates an exception</span></pre>
 <h2><a class="toc-backref" id="dsl-assertion" href="#dsl-assertion">Assertion</a></h2><p>Use <tt class="docutils literal"><span class="pre">= expr</span></tt> for producing an exception if the parsed value doesn't match <tt class="docutils literal"><span class="pre">expr</span></tt>:</p>
 <pre class="listing"><span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">x</span> <span class="Operator">=</span> <span class="StringLit">&quot;BinaryLang is awesome&quot;</span>
 <span class="DecNumber">8</span><span class="Punctuation">:</span> <span class="Identifier">y</span><span class="Punctuation">[</span><span class="DecNumber">5</span><span class="Punctuation">]</span> <span class="Operator">=</span> <span class="Operator">@</span><span class="Punctuation">[</span><span class="DecNumber">0</span><span class="Punctuation">,</span> <span class="DecNumber">1</span><span class="Punctuation">,</span> <span class="DecNumber">2</span><span class="Punctuation">,</span> <span class="DecNumber">3</span><span class="Punctuation">,</span> <span class="DecNumber">4</span><span class="Punctuation">]</span></pre><p>Assertion can also be used in a special manner to terminate the previous field if it's a <strong>string</strong> or a <strong>sequence indicated as magic-terminated</strong>. This is discussed in later sections.</p>
 
-<h2><a class="toc-backref" id="dsl-complex-types" href="#dsl-complex-types">Complex types</a></h2><p>Instead of the described identifier for specifying <tt class="docutils literal"><span class="pre">Type</span></tt>, you can call a previously defined parser by using <tt class="docutils literal"><span class="pre">*</span></tt> followed by the name of the parser. If your parser is parametric you must pass arguments to it with standard call syntax.</p>
+<h2><a class="toc-backref" id="dsl-complex-types" href="#dsl-complex-types">Complex types</a></h2><p>Instead of the described identifier for specifying type, you can call a previously defined parser by using <tt class="docutils literal"><span class="pre">*</span></tt> followed by the name of the parser. If your parser is parametric you must pass arguments to it with standard call syntax.</p>
 <p>Example:</p>
 <pre class="listing"><span class="Identifier">createParser</span><span class="Punctuation">(</span><span class="Identifier">inner</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
   <span class="DecNumber">32</span><span class="Punctuation">:</span> <span class="Identifier">a</span>
@@ -257,19 +236,21 @@ function main() {
 <span class="Identifier">createParser</span><span class="Punctuation">(</span><span class="Identifier">outer</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
   <span class="Operator">*</span><span class="Identifier">inner</span><span class="Punctuation">:</span> <span class="Identifier">x</span>
   <span class="Operator">*</span><span class="Identifier">innerWithArgs</span><span class="Punctuation">(</span><span class="Identifier">x</span><span class="Operator">.</span><span class="Identifier">a</span><span class="Punctuation">)</span><span class="Punctuation">:</span> <span class="Identifier">y</span></pre>
-<h2><a class="toc-backref" id="dsl-repetition" href="#dsl-repetition">Repetition</a></h2><p>There are 3 ways to produce a <tt class="docutils literal"><span class="pre">seq</span></tt> of your <tt class="docutils literal"><span class="pre">Type</span></tt>:</p>
+<h2><a class="toc-backref" id="dsl-repetition" href="#dsl-repetition">Repetition</a></h2><p>There are 3 ways to produce a <tt class="docutils literal"><span class="pre">seq</span></tt> of your type:</p>
 <ul class="simple"><li><tt class="docutils literal"><span class="pre">for</span></tt>: append <tt class="docutils literal"><span class="pre">[expr]</span></tt> to the name for repeating <tt class="docutils literal"><span class="pre">expr</span></tt> times</li>
 <li><tt class="docutils literal"><span class="pre">until</span></tt>: append <tt class="docutils literal"><span class="pre">{expr}</span></tt> to the name for repeating until <tt class="docutils literal"><span class="pre">expr</span></tt> is evaluated to <tt class="docutils literal"><span class="pre">true</span></tt></li>
 <li><tt class="docutils literal"><span class="pre">magic</span></tt>: enclose name with <tt class="docutils literal"><span class="pre">{}</span></tt> and use assertion with your <strong>next</strong> field</li>
 </ul>
 <pre class="listing"><span class="DecNumber">8</span><span class="Punctuation">:</span> <span class="Identifier">a</span><span class="Punctuation">[</span><span class="DecNumber">5</span><span class="Punctuation">]</span> <span class="Comment"># reads 5 8-bit integers</span>
-<span class="DecNumber">8</span><span class="Punctuation">:</span> <span class="Identifier">b</span><span class="Punctuation">{</span><span class="Identifier">e</span> <span class="Operator">==</span> <span class="DecNumber">103</span> <span class="Keyword">or</span> <span class="Identifier">i</span> <span class="Operator">&gt;</span> <span class="DecNumber">9</span><span class="Punctuation">}</span> <span class="Comment"># reads until it finds the value 103 or completes 10th iteration</span>
+<span class="DecNumber">8</span><span class="Punctuation">:</span> <span class="Identifier">b</span><span class="Punctuation">{</span><span class="Identifier">_</span> <span class="Operator">==</span> <span class="DecNumber">103</span> <span class="Keyword">or</span> <span class="Identifier">i</span> <span class="Operator">&gt;</span> <span class="DecNumber">9</span><span class="Punctuation">}</span> <span class="Comment"># reads until it finds the value 103 or</span>
+                        <span class="Comment"># completes 10th iteration</span>
 <span class="DecNumber">8</span><span class="Punctuation">:</span> <span class="Punctuation">{</span><span class="Identifier">c</span><span class="Punctuation">}</span> <span class="Comment"># reads 8-bit integers until next field is matches</span>
 <span class="DecNumber">16</span><span class="Punctuation">:</span> <span class="Identifier">_</span> <span class="Operator">=</span> <span class="HexNumber">0xABCD</span>
-<span class="Identifier">u8</span><span class="Punctuation">:</span> <span class="Punctuation">{</span><span class="Identifier">d</span><span class="Punctuation">[</span><span class="DecNumber">5</span><span class="Punctuation">]</span><span class="Punctuation">}</span> <span class="Comment"># reads byte sequences each of length 5 until next field matches</span>
+<span class="Identifier">u8</span><span class="Punctuation">:</span> <span class="Punctuation">{</span><span class="Identifier">d</span><span class="Punctuation">[</span><span class="DecNumber">5</span><span class="Punctuation">]</span><span class="Punctuation">}</span> <span class="Comment"># reads byte sequences each of length 5 until next field</span>
+           <span class="Comment"># matches</span>
 <span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">_</span> <span class="Operator">=</span> <span class="StringLit">&quot;END&quot;</span></pre><p>Also, the following symbols are defined implicitly:</p>
 <ul class="simple"><li><tt class="docutils literal"><span class="pre">i</span></tt>: current iteration index</li>
-<li><tt class="docutils literal"><span class="pre">e</span></tt>: last element read</li>
+<li><tt class="docutils literal"><span class="pre">_</span></tt>: last element read</li>
 </ul>
 <p>These can be leveraged even in other expressions than the expression for repetition itself; for instance you can use them to parameterize a parser:</p>
 <pre class="listing"><span class="Identifier">createParser</span><span class="Punctuation">(</span><span class="Identifier">inner</span><span class="Punctuation">,</span> <span class="Identifier">size</span><span class="Punctuation">:</span> <span class="Identifier">int</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
@@ -283,14 +264,15 @@ function main() {
 <h2><a class="toc-backref" id="dsl-substreams" href="#dsl-substreams">Substreams</a></h2><p>Call syntax forces the creation of a substream:</p>
 <pre class="listing"><span class="Identifier">createParser</span><span class="Punctuation">(</span><span class="Identifier">aux</span><span class="Punctuation">,</span> <span class="Identifier">size</span><span class="Punctuation">:</span> <span class="Identifier">int</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
   <span class="DecNumber">8</span><span class="Punctuation">:</span> <span class="Identifier">x</span><span class="Punctuation">[</span><span class="Identifier">size</span><span class="Punctuation">]</span>
-<span class="Identifier">createParser</span><span class="Punctuation">(</span><span class="Identifier">myParser</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
+<span class="Identifier">createParser</span><span class="Punctuation">(</span><span class="Identifier">parser</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
   <span class="DecNumber">8</span><span class="Punctuation">:</span> <span class="Identifier">x</span> <span class="Operator">=</span> <span class="DecNumber">4</span>
   <span class="DecNumber">8</span><span class="Punctuation">:</span> <span class="Identifier">limit</span> <span class="Operator">=</span> <span class="DecNumber">8</span>
   <span class="Operator">*</span><span class="Identifier">aux</span><span class="Punctuation">(</span><span class="Identifier">x</span><span class="Punctuation">)</span><span class="Punctuation">:</span> <span class="Identifier">fixed</span><span class="Punctuation">(</span><span class="Identifier">limit</span><span class="Punctuation">)</span></pre><p>In the above example, <tt class="docutils literal"><span class="pre">limit</span></tt> bytes (8 in this case) will be read from the main <tt class="docutils literal"><span class="pre">BitStream</span></tt>. Then, a substream will be created out of them, which will then be used as the stream for parsing <tt class="docutils literal"><span class="pre">fixed</span></tt>. Since <tt class="docutils literal"><span class="pre">fixed</span></tt> will only use 4 of them, the remaining 4 will effectively be discarded.</p>
-<p>Note that unlike in <tt class="docutils literal"><span class="pre">Type</span></tt>, here size is counted in bytes. It is implied that you cannot create a substream if your bitstream is unaligned.</p>
+<p>Note that unlike in the type, here size is counted in bytes. It is implied that you cannot create a substream if your bitstream is unaligned.</p>
 <p>This feature is <strong>not implemented for repetition</strong> because it would increase complexity with little benefits. The following syntax is <strong>invalid</strong> and instead you should use the technique with the auxiliary complex type shown above:</p>
-<pre class="listing"><span class="Identifier">createParser</span><span class="Punctuation">(</span><span class="Identifier">myParser</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
-  <span class="Identifier">u8</span><span class="Punctuation">:</span> <span class="Identifier">a</span><span class="Punctuation">[</span><span class="DecNumber">4</span><span class="Punctuation">]</span><span class="Punctuation">(</span><span class="DecNumber">6</span><span class="Punctuation">)</span> <span class="Comment"># does substream refer to each individual element or the whole sequence?</span></pre>
+<pre class="listing"><span class="Identifier">createParser</span><span class="Punctuation">(</span><span class="Identifier">parser</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
+  <span class="Identifier">u8</span><span class="Punctuation">:</span> <span class="Identifier">a</span><span class="Punctuation">[</span><span class="DecNumber">4</span><span class="Punctuation">]</span><span class="Punctuation">(</span><span class="DecNumber">6</span><span class="Punctuation">)</span> <span class="Comment"># does substream refer to each individual element or the</span>
+              <span class="Comment"># whole sequence?</span></pre>
 <h2><a class="toc-backref" id="dsl-strings" href="#dsl-strings">Strings</a></h2><p>Strings are special because they don't have a fixed size. Therefore, you must provide enough information regarding their termination. This can be achieved with one of the following:</p>
 <ul class="simple"><li>Use of substream</li>
 <li>Assertion</li>
@@ -310,17 +292,19 @@ function main() {
 <li>When using repetition, each string element is null-terminated</li>
 </ul>
 
-<h2><a class="toc-backref" id="dsl-custom-parser-api" href="#dsl-custom-parser-api">Custom parser API</a></h2><p>Since a BinaryLang parser is just a <tt class="docutils literal"><span class="pre">tuple[get: proc, set: proc]</span></tt>, you can write parsers by hand that are compatible with the DSL. Just be sure that <tt class="docutils literal"><span class="pre">get</span></tt> and <tt class="docutils literal"><span class="pre">set</span></tt> have proper signatures:</p>
-<pre class="listing"><span class="Keyword">proc</span> <span class="Identifier">get</span><span class="Punctuation">(</span><span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">BitStream</span><span class="Punctuation">)</span><span class="Punctuation">:</span> <span class="Identifier">SomeType</span>
-<span class="Keyword">proc</span> <span class="Identifier">put</span><span class="Punctuation">(</span><span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">BitStream</span><span class="Punctuation">,</span> <span class="Identifier">input</span><span class="Punctuation">:</span> <span class="Identifier">SomeType</span><span class="Punctuation">)</span>
-<span class="Keyword">let</span> <span class="Identifier">parser</span> <span class="Operator">=</span> <span class="Punctuation">(</span><span class="Identifier">get</span><span class="Punctuation">:</span> <span class="Identifier">get</span><span class="Punctuation">,</span> <span class="Identifier">put</span><span class="Punctuation">:</span> <span class="Identifier">put</span><span class="Punctuation">)</span></pre><p>If you want your custom parser to be parametric, simply append more parameters to your procs. These extra parameters must be identical and in the same order in the two procs.</p>
-<p>Example:</p>
-<pre class="listing"><span class="Keyword">proc</span> <span class="Identifier">get</span><span class="Punctuation">(</span><span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">BitStream</span><span class="Punctuation">,</span> <span class="Identifier">x</span><span class="Punctuation">:</span> <span class="Identifier">int</span><span class="Punctuation">,</span> <span class="Identifier">y</span><span class="Punctuation">:</span> <span class="Identifier">float</span><span class="Punctuation">)</span><span class="Punctuation">:</span> <span class="Identifier">SomeType</span>
-<span class="Keyword">proc</span> <span class="Identifier">put</span><span class="Punctuation">(</span><span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">BitStream</span><span class="Punctuation">,</span> <span class="Identifier">input</span><span class="Punctuation">:</span> <span class="Identifier">SomeType</span><span class="Punctuation">,</span> <span class="Identifier">x</span><span class="Punctuation">:</span> <span class="Identifier">int</span><span class="Punctuation">,</span> <span class="Identifier">y</span><span class="Punctuation">:</span> <span class="Identifier">float</span><span class="Punctuation">)</span>
+<h2><a class="toc-backref" id="dsl-custom-parser-api" href="#dsl-custom-parser-api">Custom parser API</a></h2><p>Since a BinaryLang parser is just a <tt class="docutils literal"><span class="pre">tuple[get: proc, set: proc]</span></tt>, you can write parsers by hand that are compatible with the DSL. Just be sure that <tt class="docutils literal"><span class="pre">get</span></tt> and <tt class="docutils literal"><span class="pre">set</span></tt> have proper signatures, and there is a type with the same name as your parser but capitalized:</p>
+<pre class="listing"><span class="Keyword">type</span> <span class="Identifier">Parser</span> <span class="Operator">=</span> <span class="Identifier">SomeType</span>
+<span class="Keyword">proc</span> <span class="Identifier">get</span><span class="Punctuation">(</span><span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">BitStream</span><span class="Punctuation">)</span><span class="Punctuation">:</span> <span class="Identifier">Parser</span>
+<span class="Keyword">proc</span> <span class="Identifier">put</span><span class="Punctuation">(</span><span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">BitStream</span><span class="Punctuation">,</span> <span class="Identifier">input</span><span class="Punctuation">:</span> <span class="Identifier">Parser</span><span class="Punctuation">)</span>
+<span class="Keyword">let</span> <span class="Identifier">parser</span> <span class="Operator">=</span> <span class="Punctuation">(</span><span class="Identifier">get</span><span class="Punctuation">:</span> <span class="Identifier">get</span><span class="Punctuation">,</span> <span class="Identifier">put</span><span class="Punctuation">:</span> <span class="Identifier">put</span><span class="Punctuation">)</span></pre><p>If you want your custom parser to be parametric, simply append more parameters to your procs. These extra parameters must be identical and in the same order in the two procs:</p>
+<pre class="listing"><span class="Keyword">type</span> <span class="Identifier">Parser</span> <span class="Operator">=</span> <span class="Identifier">SomeType</span>
+<span class="Keyword">proc</span> <span class="Identifier">get</span><span class="Punctuation">(</span><span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">BitStream</span><span class="Punctuation">,</span> <span class="Identifier">x</span><span class="Punctuation">:</span> <span class="Identifier">int</span><span class="Punctuation">,</span> <span class="Identifier">y</span><span class="Punctuation">:</span> <span class="Identifier">float</span><span class="Punctuation">)</span><span class="Punctuation">:</span> <span class="Identifier">Parser</span>
+<span class="Keyword">proc</span> <span class="Identifier">put</span><span class="Punctuation">(</span><span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">BitStream</span><span class="Punctuation">,</span> <span class="Identifier">input</span><span class="Punctuation">:</span> <span class="Identifier">Parser</span><span class="Punctuation">,</span> <span class="Identifier">x</span><span class="Punctuation">:</span> <span class="Identifier">int</span><span class="Punctuation">,</span> <span class="Identifier">y</span><span class="Punctuation">:</span> <span class="Identifier">float</span><span class="Punctuation">)</span>
 <span class="Keyword">let</span> <span class="Identifier">parser</span> <span class="Operator">=</span> <span class="Punctuation">(</span><span class="Identifier">get</span><span class="Punctuation">:</span> <span class="Identifier">get</span><span class="Punctuation">,</span> <span class="Identifier">put</span><span class="Punctuation">:</span> <span class="Identifier">put</span><span class="Punctuation">)</span></pre>
-<h2><a class="toc-backref" id="dsl-operations-plugins" href="#dsl-operations-plugins">Operations (plugins)</a></h2><p>The syntax for applying an operation on a field is the following:</p>
-<pre class="listing"><span class="Keyword">Type</span> <span class="Punctuation">{</span><span class="Identifier">plugin</span><span class="Punctuation">:</span> <span class="Identifier">expr</span><span class="Punctuation">}</span><span class="Punctuation">:</span> <span class="Identifier">Value</span></pre><p>An operation is nothing more than a pair of templates which follow a specific pattern:</p>
-<ul class="simple"><li>The names of the templates <strong>must</strong> follow the pattern: [name of operation] + <tt class="docutils literal"><span class="pre">get</span></tt>/<tt class="docutils literal"><span class="pre">put</span></tt></li>
+<h2><a class="toc-backref" id="dsl-operations" href="#dsl-operations">Operations</a></h2><p>Operations can be applied to fields with the following syntax:</p>
+<pre class="listing">type {op: expr}: name</pre><p>Operations act on data after the parsing and before the encoding respectively. The big restriction here is that an operation cannot alter the type, since the parsing/encoding type is always fixed.</p>
+<p>An operation is nothing more than a pair of templates which follow a specific pattern:</p>
+<ul class="simple"><li>The names of the templates <strong>must</strong> follow the pattern: <tt class="docutils literal"><span class="pre">&lt;operation&gt;get</span></tt> and <tt class="docutils literal"><span class="pre">&lt;operation&gt;put</span></tt></li>
 <li><dl class="docutils"><dt>They must have exactly 3 untyped parameters (you can name them as you wish):</dt>
 <dd><ul class="simple"><li><strong>parameter #1</strong>: the field you operate on</li>
 <li><strong>parameter #2</strong>: parsing/encoding statements</li>
@@ -356,12 +340,34 @@ function main() {
 <span class="Identifier">createParser</span><span class="Punctuation">(</span><span class="Identifier">myParser</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
   <span class="DecNumber">8</span><span class="Punctuation">:</span> <span class="Identifier">shouldParse</span>
   <span class="DecNumber">64</span><span class="Punctuation">:</span> <span class="Identifier">x</span>
-  <span class="DecNumber">16</span> <span class="Punctuation">{</span><span class="Identifier">cond</span><span class="Punctuation">:</span> <span class="Identifier">shouldParse</span><span class="Operator">.</span><span class="Identifier">bool</span><span class="Punctuation">,</span> <span class="Identifier">increase</span><span class="Punctuation">:</span> <span class="Identifier">x</span><span class="Punctuation">}</span><span class="Punctuation">:</span> <span class="Identifier">y</span></pre><p>Note that there is one limitation: Operations only alter the <em>value</em> of the field and cannot alter the <em>type</em>. If you need a different type, then you need to resort to a custom parser.</p>
+  <span class="DecNumber">16</span> <span class="Punctuation">{</span><span class="Identifier">cond</span><span class="Punctuation">:</span> <span class="Identifier">shouldParse</span><span class="Operator">.</span><span class="Identifier">bool</span><span class="Punctuation">,</span> <span class="Identifier">increase</span><span class="Punctuation">:</span> <span class="Identifier">x</span><span class="Punctuation">}</span><span class="Punctuation">:</span> <span class="Identifier">y</span></pre>
+<h2><a class="toc-backref" id="dsl-properties" href="#dsl-properties">Properties</a></h2><p>Properties follow similar syntax to operations, but the name of the property must be prefixed with <tt class="docutils literal"><span class="pre">@</span></tt>.</p>
+<p>Properties are meant for making the interaction with the parsed data easier.</p>
+<p>There are two big differences compared to operations:</p>
+<ul class="simple"><li>They don't affect parsing/encoding - they only change the way the user interacts with data</li>
+<li>They are built-in features rather than user-defined language extensions</li>
+</ul>
+<p>The following properties are available:</p>
+<ul class="simple"><li>set</li>
+<li>get</li>
+<li>hook</li>
+</ul>
+<p><tt class="docutils literal"><span class="pre">@set</span></tt> and <tt class="docutils literal"><span class="pre">@get</span></tt> allows you to get a different view of your data, hiding the underlying implementation. This is particularly useful when the type used to parse the data differs from the one you want to use to interact with them in Nim.</p>
+<p><tt class="docutils literal"><span class="pre">@hook</span></tt> allows you to run more code each time your field is mutated.</p>
+<p>Using any of the properties: <tt class="docutils literal"><span class="pre">@set</span></tt>, <tt class="docutils literal"><span class="pre">@get</span></tt>, <tt class="docutils literal"><span class="pre">@hook</span></tt> forces  the actual name of the field to be generated with <tt class="docutils literal"><span class="pre">genSym</span></tt>, thus hiding it from the user. The specified name is then used for generating a pair of <em>getter</em>/<em>setter</em> procs. This way the extra code run on access/mutation is transparent to the user.</p>
+<ul class="simple"><li>in <tt class="docutils literal"><span class="pre">@get</span></tt>: <tt class="docutils literal"><span class="pre">_</span></tt> refers to the field</li>
+<li>in <tt class="docutils literal"><span class="pre">@set</span></tt> and in <tt class="docutils literal"><span class="pre">@hook</span></tt>: <tt class="docutils literal"><span class="pre">_</span></tt> refers to the value being assigned to the field</li>
+</ul>
+<pre class="listing"><span class="Identifier">createParser</span><span class="Punctuation">(</span><span class="Identifier">parser</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
+  <span class="Identifier">s</span> <span class="Punctuation">{</span><span class="Operator">@</span><span class="Identifier">get</span><span class="Punctuation">:</span> <span class="Identifier">_</span><span class="Operator">.</span><span class="Identifier">parseInt</span><span class="Punctuation">,</span> <span class="Operator">@</span><span class="Identifier">set</span><span class="Punctuation">:</span> <span class="Operator">$</span><span class="Identifier">_</span><span class="Punctuation">}</span><span class="Punctuation">:</span> <span class="Identifier">myInt</span>
 
+<span class="Keyword">var</span> <span class="Identifier">x</span><span class="Punctuation">:</span> <span class="Identifier">Parser</span>
+<span class="Identifier">echo</span> <span class="Identifier">x</span><span class="Operator">.</span><span class="Identifier">myInt</span> <span class="Operator">+</span> <span class="DecNumber">42</span>
+<span class="Identifier">x</span><span class="Operator">.</span><span class="Identifier">myInt</span> <span class="Operator">=</span> <span class="DecNumber">24</span></pre>
 <h2><a class="toc-backref" id="dsl-special-notes" href="#dsl-special-notes">Special notes</a></h2><ul class="simple"><li><dl class="docutils"><dt>Nim expressions may contain:</dt>
 <dd><ul class="simple"><li>a previously defined field</li>
 <li>a parser parameter</li>
-<li>the <tt class="docutils literal"><span class="pre">e</span></tt> symbol for getting the last element read in a repetition</li>
+<li>the <tt class="docutils literal"><span class="pre">_</span></tt> symbol for <em>subject</em> element (its meaning varies)</li>
 <li>the <tt class="docutils literal"><span class="pre">i</span></tt> symbol for current index in a repetition</li>
 <li>the <tt class="docutils literal"><span class="pre">s</span></tt> symbol for accessing the bitstream</li>
 </ul>
@@ -369,18 +375,23 @@ function main() {
 </dl>
 </li>
 </ul>
-<p>These might conflict with your variables or fields, so you shouldn't use them for something else.</p>
-<p>BinaryLang is a complete rewrite of <a class="reference external" href="https://github.com/PMunch/binaryparse">binaryparse</a> by <a class="reference external" href="https://github.com/PMunch">PMunch</a> (special thanks). The codebase is a lot cleaner and the bit fiddling has been extracted to a separate library (<a class="reference external" href="https://github.com/sealmove/bitstreams">bitstreams</a>) which BinaryLang depends on. Moreover, a lot of features have been added, including a plugin system for user-defined language extensions!</p>
+<p><tt class="docutils literal"><span class="pre">i</span></tt> and <tt class="docutils literal"><span class="pre">s</span></tt> might conflict with your variables or fields, so you should consider them reserved keywords and not use them for something else.</p>
 </p>
   <div class="section" id="7">
 <h1><a class="toc-backref" href="#7">Types</a></h1>
 <dl class="item">
 <a id="MagicError"></a>
-<dt><pre><a href="binarylang.html#MagicError"><span class="Identifier">MagicError</span></a> <span class="Other">=</span> <span class="Keyword">object</span> <span class="Keyword">of</span> <span class="Identifier">Defect</span>
-  </pre></dt>
+<dt><pre><a href="binarylang.html#MagicError"><span class="Identifier">MagicError</span></a> <span class="Other">=</span> <span class="Keyword">object</span> <span class="Keyword">of</span> <span class="Identifier">Defect</span></pre></dt>
 <dd>
 
-Error raised from the parser procedure when a magic sequence is not matching the specified value.
+
+
+</dd>
+<a id="SyntaxError"></a>
+<dt><pre><a href="binarylang.html#SyntaxError"><span class="Identifier">SyntaxError</span></a> <span class="Other">=</span> <span class="Keyword">object</span> <span class="Keyword">of</span> <span class="Identifier">Defect</span></pre></dt>
+<dd>
+
+
 
 </dd>
 
@@ -389,45 +400,63 @@ Error raised from the parser procedure when a magic sequence is not matching the
 <h1><a class="toc-backref" href="#17">Macros</a></h1>
 <dl class="item">
 <a id="typeGetter.m,typed"></a>
-<dt><pre><span class="Keyword">macro</span> <a href="#typeGetter.m%2Ctyped"><span class="Identifier">typeGetter</span></a><span class="Other">(</span><span class="Identifier">body</span><span class="Other">:</span> <span class="Identifier">typed</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">untyped</span></pre></dt>
+<dt><pre><span class="Keyword">macro</span> <a href="#typeGetter.m%2Ctyped"><span class="Identifier">typeGetter</span></a><span class="Other">(</span><span class="Identifier">body</span><span class="Other">:</span> <span class="Identifier">typed</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">untyped</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">deprecated</span><span class="Other">:</span> <span class="StringLit">&quot;use type directly&quot;</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
+  <div class="deprecation-message">
+    <b>Deprecated:</b> use type directly
+  </div>
 
-Helper macro to get the return type of custom parsers
+
 
 </dd>
 <a id="createParser.m,untyped,varargs[untyped]"></a>
 <dt><pre><span class="Keyword">macro</span> <a href="#createParser.m%2Cuntyped%2Cvarargs%5Buntyped%5D"><span class="Identifier">createParser</span></a><span class="Other">(</span><span class="Identifier">name</span><span class="Other">:</span> <span class="Identifier">untyped</span><span class="Other">;</span> <span class="Identifier">rest</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">untyped</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">untyped</span></pre></dt>
 <dd>
 
-The main macro in this module. It takes the <tt class="docutils literal"><span class="pre">name</span></tt> of the tuple to create along with a block on the format described above and creates a reader and a writer for it. The output is a tuple with <tt class="docutils literal"><span class="pre">name</span></tt> that has two fields <tt class="docutils literal"><span class="pre">get</span></tt> and <tt class="docutils literal"><span class="pre">put</span></tt>. Get is on the form <tt class="docutils literal"><span class="pre">proc (bs: BitStream): tuple[&lt;fields&gt;]</span></tt> and put is <tt class="docutils literal"><span class="pre">proc (bs: BitStream, input: tuple[&lt;fields&gt;])</span></tt>
+Input:<ul class="simple"><li><tt class="docutils literal"><span class="pre">name</span></tt>: the name of the parser tuple to create (must be lowercase)</li>
+<li><tt class="docutils literal"><span class="pre">rest</span></tt>: <strong>optionally</strong> parser options and parameters</li>
+<li><tt class="docutils literal"><span class="pre">rest</span></tt> (last): a block of the format described above</li>
+</ul>
+<p>Output:</p>
+<ul class="simple"><li>Object type declaration with name <tt class="docutils literal"><span class="pre">tname</span></tt> ≡ <tt class="docutils literal"><span class="pre">capitalizeAscii(name)</span></tt></li>
+<li>Reader proc that returns an object of the type <tt class="docutils literal"><span class="pre">tname</span></tt></li>
+<li>Writer proc that accepts an object of type <tt class="docutils literal"><span class="pre">tname</span></tt></li>
+<li>A tuple named <tt class="docutils literal"><span class="pre">name</span></tt> with the fields <tt class="docutils literal"><span class="pre">get</span></tt> and <tt class="docutils literal"><span class="pre">put</span></tt></li>
+</ul>
+<p>The procs are of the following form:</p>
+<pre class="listing"><span class="Keyword">proc</span> <span class="Identifier">get</span><span class="Punctuation">(</span><span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">BitStream</span><span class="Punctuation">)</span><span class="Punctuation">:</span> <span class="Punctuation">`</span><span class="Identifier">tname</span><span class="Punctuation">`</span>
+<span class="Keyword">proc</span> <span class="Identifier">put</span><span class="Punctuation">(</span><span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">BitStream</span><span class="Punctuation">,</span> <span class="Identifier">input</span><span class="Punctuation">:</span> <span class="Punctuation">`</span><span class="Identifier">tname</span><span class="Punctuation">`</span><span class="Punctuation">)</span></pre>
 
 </dd>
-<a id="createVariantParser.m,untyped,untyped,untyped,varargs[untyped]"></a>
-<dt><pre><span class="Keyword">macro</span> <a href="#createVariantParser.m%2Cuntyped%2Cuntyped%2Cuntyped%2Cvarargs%5Buntyped%5D"><span class="Identifier">createVariantParser</span></a><span class="Other">(</span><span class="Identifier">name</span><span class="Other">,</span> <span class="Identifier">typ</span><span class="Other">,</span> <span class="Identifier">disc</span><span class="Other">:</span> <span class="Identifier">untyped</span><span class="Other">;</span> <span class="Identifier">rest</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">untyped</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">untyped</span></pre></dt>
+<a id="createVariantParser.m,untyped,untyped,varargs[untyped]"></a>
+<dt><pre><span class="Keyword">macro</span> <a href="#createVariantParser.m%2Cuntyped%2Cuntyped%2Cvarargs%5Buntyped%5D"><span class="Identifier">createVariantParser</span></a><span class="Other">(</span><span class="Identifier">name</span><span class="Other">,</span> <span class="Identifier">disc</span><span class="Other">:</span> <span class="Identifier">untyped</span><span class="Other">;</span> <span class="Identifier">rest</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">untyped</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">untyped</span></pre></dt>
 <dd>
 
-<p>This macro creates an object variant along with a variant parser (equivelant to a variant/sum type) for that type.</p>
-<p>It takes the following mandatory arguments with must be first and in this order:</p>
-<ul class="simple"><li>The name of the parser</li>
-<li>The name of the variant type</li>
-<li>The discriminator (<tt class="docutils literal"><span class="pre">&lt;name&gt;: &lt;type&gt;</span></tt>)</li>
+Input:<ul class="simple"><li><tt class="docutils literal"><span class="pre">name</span></tt>: the name of the parser tuple to create (must be lowercase)</li>
+<li><tt class="docutils literal"><span class="pre">disc</span></tt>: the definition of the discriminator field (<tt class="docutils literal"><span class="pre">name: type</span></tt>)</li>
+<li><tt class="docutils literal"><span class="pre">rest</span></tt>: <strong>optionally</strong> parser options and parameters</li>
+<li><tt class="docutils literal"><span class="pre">rest</span></tt> (last): a block of the format described above</li>
 </ul>
-<p>And the following optional arguments:</p>
-<ul class="simple"><li>Parser options (<tt class="docutils literal"><span class="pre">&lt;name&gt; = &lt;value&gt;</span></tt>)</li>
-<li>Parameters (<tt class="docutils literal"><span class="pre">&lt;name&gt;: &lt;type&gt;</span></tt>)</li>
+<p>Output:</p>
+<ul class="simple"><li><strong>Variant</strong> object type declaration with discriminator <tt class="docutils literal"><span class="pre">disc</span></tt> and name <tt class="docutils literal"><span class="pre">tname</span></tt> ≡ <tt class="docutils literal"><span class="pre">capitalizeAscii(name)</span></tt></li>
+<li>Reader proc that returns an object of the type <tt class="docutils literal"><span class="pre">tname</span></tt></li>
+<li>Writer proc that accepts an object of type <tt class="docutils literal"><span class="pre">tname</span></tt></li>
+<li>A tuple named <tt class="docutils literal"><span class="pre">name</span></tt> with the fields <tt class="docutils literal"><span class="pre">get</span></tt> and <tt class="docutils literal"><span class="pre">put</span></tt></li>
 </ul>
-<p>The body is similar to that of <tt class="docutils literal"><span class="pre">createParser</span></tt> macro, but the fields are partitioned in branches. Each branch starts with one or more possible value of the discriminator in parenthesis, seperated by comma.</p>
+<p>The procs are of the following form:</p>
+<pre class="listing"><span class="Keyword">proc</span> <span class="Identifier">get</span><span class="Punctuation">(</span><span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">BitStream</span><span class="Punctuation">)</span><span class="Punctuation">:</span> <span class="Punctuation">`</span><span class="Identifier">tname</span><span class="Punctuation">`</span>
+<span class="Keyword">proc</span> <span class="Identifier">put</span><span class="Punctuation">(</span><span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">BitStream</span><span class="Punctuation">,</span> <span class="Identifier">input</span><span class="Punctuation">:</span> <span class="Punctuation">`</span><span class="Identifier">tname</span><span class="Punctuation">`</span><span class="Punctuation">)</span></pre><p>The body is similar to that of <tt class="docutils literal"><span class="pre">createParser</span></tt> macro, but the fields are partitioned in branches. Each branch starts with one or more possible value of the discriminator in parenthesis, seperated by comma.</p>
 <p>For covering the rest of the cases use the <tt class="docutils literal"><span class="pre">_</span></tt> symbol (without parenthesis).</p>
 <p>If you don't want a field for some branch, use <tt class="docutils literal"><span class="pre">nil</span></tt> on the right side.</p>
-<p>For exporting a symbol, prefix it with <tt class="docutils literal"><span class="pre">*</span></tt> (this also work for the discriminator).</p>
-<pre class="listing"><span class="Identifier">createVariantParser</span><span class="Punctuation">(</span><span class="Identifier">FooBar</span><span class="Punctuation">,</span> <span class="Identifier">FooBarTy</span><span class="Punctuation">,</span> <span class="Identifier">disc</span><span class="Punctuation">:</span> <span class="Identifier">int</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
-  <span class="Punctuation">(</span><span class="DecNumber">0</span><span class="Punctuation">)</span><span class="Punctuation">:</span> <span class="Operator">*</span><span class="Identifier">Foo</span><span class="Punctuation">:</span> <span class="Identifier">foo</span>
-  <span class="Punctuation">(</span><span class="DecNumber">1</span><span class="Punctuation">,</span> <span class="DecNumber">3</span><span class="Punctuation">)</span><span class="Punctuation">:</span> <span class="Identifier">u32</span><span class="Punctuation">:</span> <span class="Operator">*</span><span class="Identifier">a</span>
+<p>Example:</p>
+<pre class="listing"><span class="Identifier">createVariantParser</span><span class="Punctuation">(</span><span class="Identifier">fooBar</span><span class="Punctuation">,</span> <span class="Identifier">disc</span><span class="Punctuation">:</span> <span class="Identifier">int</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
+  <span class="Punctuation">(</span><span class="DecNumber">0</span><span class="Punctuation">)</span><span class="Punctuation">:</span> <span class="Operator">*</span><span class="Identifier">foo</span><span class="Punctuation">:</span> <span class="Identifier">a</span>
+  <span class="Punctuation">(</span><span class="DecNumber">1</span><span class="Punctuation">,</span> <span class="DecNumber">3</span><span class="Punctuation">)</span><span class="Punctuation">:</span> <span class="Identifier">u32</span><span class="Punctuation">:</span> <span class="Operator">*</span><span class="Identifier">b</span>
   <span class="Punctuation">(</span><span class="DecNumber">2</span><span class="Punctuation">)</span><span class="Punctuation">:</span> <span class="Keyword">nil</span>
   <span class="Punctuation">(</span><span class="DecNumber">4</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
-    <span class="Identifier">u8</span><span class="Punctuation">:</span> <span class="Identifier">b</span>
-    <span class="Operator">*</span><span class="Identifier">Bar</span><span class="Punctuation">:</span> <span class="Identifier">bar</span>
-  <span class="Identifier">_</span><span class="Punctuation">:</span> <span class="Identifier">u32</span><span class="Punctuation">:</span> <span class="Identifier">abc</span></pre>
+    <span class="Identifier">u8</span><span class="Punctuation">:</span> <span class="Identifier">c</span>
+    <span class="Operator">*</span><span class="Identifier">bar</span><span class="Punctuation">:</span> <span class="Identifier">d</span>
+  <span class="Identifier">_</span><span class="Punctuation">:</span> <span class="Identifier">u32</span><span class="Punctuation">:</span> <span class="Identifier">e</span></pre>
 
 </dd>
 
@@ -440,7 +469,7 @@ The main macro in this module. It takes the <tt class="docutils literal"><span c
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2021-03-18 23:25:53 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2021-03-23 14:36:17 UTC</small>
       </div>
     </div>
   </div>
