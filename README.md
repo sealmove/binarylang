@@ -10,6 +10,8 @@ Moreover, you can mix DSL-generated parsers with custom parsers, extend the DSL 
 templates, and configure the way you interact with your data.
 
 ## Documentation
-- [User guide](https://sealmove.github.io/binarylang/)
+- [Manual](https://sealmove.github.io/binarylang/)
 - [Tutorial](https://sealmove.github.io/binarylang/tutorial.html)
 - [Changelog](https://sealmove.github.io/binarylang/changelog.html)
+- Tutorials, write-ups, articles
+  - [Asuja on HTML](https://ajusa.github.io/binarylang-fun/intro.html)
