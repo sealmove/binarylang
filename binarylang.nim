@@ -1074,8 +1074,9 @@ proc generateProperties(parserType: NimNode; f: Field;
     expr.prefixFields(fst, pst, objGet)
   else:
     expr = targetField
+  let getSym = ident(f.val.name)
   getProp = newProc(
-    ident(f.val.name),
+    if f.val.isExported: postfix(getSym, "*") else: getSym,
     @[ident"auto",
       newIdentDefs(objGet, parserType)],
     expr)
@@ -1089,10 +1090,11 @@ proc generateProperties(parserType: NimNode; f: Field;
     expr.prefixFields(fst, pst, objPut)
   else:
     expr = val
+  let setSym = nnkAccQuoted.newTree(
+    ident(f.val.name),
+    ident"=")
   setProp = newProc(
-    nnkAccQuoted.newTree(
-      ident(f.val.name),
-      ident"="),
+    if f.val.isExported: postfix(setSym, "*") else: setSym,
     @[newEmptyNode(),
       newIdentDefs(objPut, nnkVarTy.newTree(parserType)),
       newIdentDefs(val, ident"any")],
