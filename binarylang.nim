@@ -1109,6 +1109,44 @@ proc generateProperties(parserType: NimNode; f: Field;
     setProp[6].insert(0, expr)
   result.add(setProp)
 
+proc generateConverters(tname, pname: NimNode; params: seq[NimNode]):
+ tuple[to, `from`: NimNode] {.compileTime.} =
+  var
+    procToParams = @[tname, newIdentDefs(ident"x", ident"string")]
+    procToBody = newCall(
+      newDotExpr(
+        pname,
+        ident"get"),
+      newCall(
+        ident"newStringBitStream",
+        ident"x"))
+    procFromParams = @[ident"string", newIdentDefs(ident"x", tname)]
+    putCall = newCall(
+      newDotExpr(
+        pname,
+        ident"put"),
+      ident"s",
+      ident"x")
+  for p in params:
+    procToParams.add(p.copyNimTree)
+    procToBody.add(p[0].copyNimTree)
+    procFromParams.add(p.copyNimTree)
+    putCall.add(p[0].copyNimTree)
+  result = (
+    newProc(
+      ident("to" & tname.strVal),
+      procToParams,
+      procToBody),
+    newProc(
+      ident("from" & tname.strVal),
+      procFromParams,
+      newStmtList(
+        (quote do:
+          let s {.inject.} = newStringBitStream()),
+        putCall,
+        (quote do: s.seek(0)),
+        (quote do: s.readAll))))
+
 macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
   ## Input:
   ## - `name`: the name of the parser tuple to create (must be lowercase)
@@ -1228,21 +1266,15 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
     writerProcForwardDecl[3].add p.copyNimTree
     readerProc[3].add p.copyNimTree
     writerProc[3].add p.copyNimTree
-  let convToObjName = ident("to" & tname.strVal)
+  let (procTo, procFrom) = generateConverters(tname, pname, params)
   result.add(quote do:
     `readerProcForwardDecl`
     `writerProcForwardDecl`
     let `pdef` = (get: `readerName`, put: `writerName`)
     `readerProc`
     `writerProc`
-    converter `convToObjName`(x: string): `tname` =
-      `pname`.get(newStringBitStream(x))
-    converter toString(x: `tname`): string =
-      let s = newStringBitStream(x)
-      `pname`.set(s, x)
-      s.seek(0)
-      s.readAll
-    )
+    `procTo`
+    `procFrom`)
   when defined(BinaryLangEcho):
     echo repr result
 
@@ -1472,20 +1504,14 @@ macro createVariantParser*(name, disc: untyped; rest: varargs[untyped]): untyped
     writerProcForwardDecl[3].add p.copyNimTree
     readerProc[3].add p.copyNimTree
     writerProc[3].add p.copyNimTree
-  let convToObjName = ident("to" & tname.strVal)
+  let (procTo, procFrom) = generateConverters(tname, pname, params)
   result.add(quote do:
     `readerProcForwardDecl`
     `writerProcForwardDecl`
     let `pdef` = (get: `readerName`, put: `writerName`)
     `readerProc`
     `writerProc`
-    converter `convToObjName`(x: string): `tname` =
-      `pname`.get(newStringBitStream(x))
-    converter toString(x: `tname`): string =
-      let s = newStringBitStream(x)
-      `pname`.set(s, x)
-      s.seek(0)
-      s.readAll
-    )
+    `procTo`
+    `procFrom`)
   when defined(BinaryLangEcho):
     echo repr result
