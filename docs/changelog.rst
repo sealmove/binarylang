@@ -15,11 +15,11 @@ With many breaking changes, this marks the beginning of version control!
 
 v0.3.0 (25 March 2021)
 -------------------------------------------------------------------------------
-- bugfixes for `@put`/`@hook` properties.
-- the underlying field when using properties can now be accessed with using the
+- Bugfixes for `@put`/`@hook` properties.
+- The underlying field when using properties can now be accessed with the
   identifier `<field>Impl`.
-- exportation of fields using `*` now also works when using properties.
-- parser and parser's type symbols can now be exported by prepending `*` to the
+- Exportation of fields using `*` now also works when using properties.
+- Parser and parser's type symbols can now be exported by prepending `*` to the
   parser's name.
 - `createParser` and `createVariantParser` now also generate converters from/to
   `string`.
