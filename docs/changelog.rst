@@ -26,6 +26,6 @@ v0.3.0 (25 March 2021)
 
 v0.3.1 (25 March 2021)
 -------------------------------------------------------------------------------
-- Implemented *converters* property. They are now procs with the names:
-  - from<parser>
-  - to<parser>
+- Implemented *converters* properly. They are now procs with the names:
+  - ``from<parser>``
+  - ``to<parser>``
