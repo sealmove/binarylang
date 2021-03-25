@@ -12,3 +12,14 @@ With many breaking changes, this marks the beginning of version control!
 - `@hook` property is implemented
 - `typeGetter` is marked as deprecated.
 - Switched from unittest to testament.
+
+v0.3.0 (25 March 2021)
+-------------------------------------------------------------------------------
+- bugfixes for `@put`/`@hook` properties.
+- the underlying field when using properties can now be accessed with using the
+  identifier `<field>Impl`.
+- exportation of fields using `*` now also works when using properties.
+- parser and parser's type symbols can now be exported by prepending `*` to the
+  parser's name.
+- `createParser` and `createVariantParser` now also generate converters from/to
+  `string`.

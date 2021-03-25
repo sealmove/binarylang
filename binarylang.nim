@@ -1128,10 +1128,29 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
   ##   proc get(s: BitStream): `tname`
   ##   proc put(s: BitStream, input: `tname`)
   result = newStmtList()
-  name.expectKind(nnkIdent)
-  if name.strVal[0].isUpperAscii:
-    syntaxError("Parser name must be lowercase")
-  let tname = ident(name.strVal.capitalizeAscii)
+  name.expectKind({nnkIdent, nnkPrefix})
+  var
+    pname: NimNode
+    pdef: NimNode
+    tname: NimNode
+    tdef: NimNode
+  case name.kind
+  of nnkIdent:
+    if name.strVal[0].isUpperAscii:
+      syntaxError("Parser name must be lowercase")
+    pname = name.copyNimTree
+    pdef = name.copyNimTree
+    tname = ident(name.strVal.capitalizeAscii)
+    tdef = ident(name.strVal.capitalizeAscii)
+  of nnkPrefix:
+    if name[0].strVal != "*":
+      syntaxError("Invalid prefix operator for parser name")
+    pname = name[1].copyNimTree
+    pdef = postfix(name[1].copyNimTree, "*")
+    tname = ident(name[1].strVal.capitalizeAscii)
+    tdef = postfix(ident(name[1].strVal.capitalizeAscii), "*")
+  else:
+    syntaxError("Invalid syntax for parser name")
   var
     fieldDefs = newTree(nnkRecList)
     fieldsSymbolTable = newSeq[string]()
@@ -1175,7 +1194,7 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
   result.add(
     nnkTypeSection.newTree(
       nnkTypeDef.newTree(
-        tname,
+        tdef,
         newEmptyNode(),
         nnkRefTy.newTree(
           nnkObjectTy.newTree(
@@ -1209,12 +1228,21 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
     writerProcForwardDecl[3].add p.copyNimTree
     readerProc[3].add p.copyNimTree
     writerProc[3].add p.copyNimTree
+  let convToObjName = ident("to" & tname.strVal)
   result.add(quote do:
     `readerProcForwardDecl`
     `writerProcForwardDecl`
-    let `name` = (get: `readerName`, put: `writerName`)
+    let `pdef` = (get: `readerName`, put: `writerName`)
     `readerProc`
-    `writerProc`)
+    `writerProc`
+    converter `convToObjName`(x: string): `tname` =
+      `pname`.get(newStringBitStream(x))
+    converter toString(x: `tname`): string =
+      let s = newStringBitStream(x)
+      `pname`.set(s, x)
+      s.seek(0)
+      s.readAll
+    )
   when defined(BinaryLangEcho):
     echo repr result
 
@@ -1285,14 +1313,34 @@ macro createVariantParser*(name, disc: untyped; rest: varargs[untyped]): untyped
   ##       *bar: d
   ##     _: u32: e
   result = newStmtList()
-  name.expectKind(nnkIdent)
+
+  name.expectKind({nnkIdent, nnkPrefix})
   disc.expectKind(nnkExprColonExpr)
-  if name.strVal[0].isUpperAscii:
-    syntaxError("Parser name must be lowercase")
+  var
+    pname: NimNode
+    pdef: NimNode
+    tname: NimNode
+    tdef: NimNode
+  case name.kind
+  of nnkIdent:
+    if name.strVal[0].isUpperAscii:
+      syntaxError("Parser name must be lowercase")
+    pname = name.copyNimTree
+    pdef = name.copyNimTree
+    tname = ident(name.strVal.capitalizeAscii)
+    tdef = ident(name.strVal.capitalizeAscii)
+  of nnkPrefix:
+    if name[0].strVal != "*":
+      syntaxError("Invalid prefix operator for parser name")
+    pname = name[1].copyNimTree
+    pdef = postfix(name[1].copyNimTree, "*")
+    tname = ident(name[1].strVal.capitalizeAscii)
+    tdef = postfix(ident(name[1].strVal.capitalizeAscii), "*")
+  else:
+    syntaxError("Invalid syntax for parser name")
   let
     input = ident"input"
     bs = ident"s"
-    tname = ident(name.strVal.capitalizeAscii)
     discType = disc[1]
     (extraParams, parserOptions) = decodeHeader(rest[0 .. ^2])
   var
@@ -1350,7 +1398,7 @@ macro createVariantParser*(name, disc: untyped; rest: varargs[untyped]): untyped
   result.add(
     nnkTypeSection.newTree(
       nnkTypeDef.newTree(
-        tname,
+        tdef,
         newEmptyNode(),
         nnkRefTy.newTree(
           nnkObjectTy.newTree(
@@ -1424,11 +1472,20 @@ macro createVariantParser*(name, disc: untyped; rest: varargs[untyped]): untyped
     writerProcForwardDecl[3].add p.copyNimTree
     readerProc[3].add p.copyNimTree
     writerProc[3].add p.copyNimTree
+  let convToObjName = ident("to" & tname.strVal)
   result.add(quote do:
     `readerProcForwardDecl`
     `writerProcForwardDecl`
-    let `name` = (get: `readerName`, put: `writerName`)
+    let `pdef` = (get: `readerName`, put: `writerName`)
     `readerProc`
-    `writerProc`)
+    `writerProc`
+    converter `convToObjName`(x: string): `tname` =
+      `pname`.get(newStringBitStream(x))
+    converter toString(x: `tname`): string =
+      let s = newStringBitStream(x)
+      `pname`.set(s, x)
+      s.seek(0)
+      s.readAll
+    )
   when defined(BinaryLangEcho):
     echo repr result
