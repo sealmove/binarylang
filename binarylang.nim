@@ -1109,9 +1109,12 @@ proc generateProperties(parserType: NimNode; f: Field;
     setProp[6].insert(0, expr)
   result.add(setProp)
 
-proc generateConverters(tname, pname: NimNode; params: seq[NimNode]):
- tuple[to, `from`: NimNode] {.compileTime.} =
+proc generateConverters(tname, pname: NimNode; params: seq[NimNode];
+                        isExported: bool): tuple[to, `from`: NimNode]
+ {.compileTime.} =
   var
+    toConv = ident("to" & tname.strVal)
+    fromConv = ident("from" & tname.strVal)
     procToParams = @[tname, newIdentDefs(ident"x", ident"string")]
     procToBody = newCall(
       newDotExpr(
@@ -1127,6 +1130,9 @@ proc generateConverters(tname, pname: NimNode; params: seq[NimNode]):
         ident"put"),
       ident"s",
       ident"x")
+  if isExported:
+    toConv = postfix(toConv, "*")
+    fromConv = postfix(fromConv, "*")
   for p in params:
     procToParams.add(p.copyNimTree)
     procToBody.add(p[0].copyNimTree)
@@ -1172,6 +1178,7 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
     pdef: NimNode
     tname: NimNode
     tdef: NimNode
+    isExported: bool
   case name.kind
   of nnkIdent:
     if name.strVal[0].isUpperAscii:
@@ -1180,6 +1187,7 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
     pdef = name.copyNimTree
     tname = ident(name.strVal.capitalizeAscii)
     tdef = ident(name.strVal.capitalizeAscii)
+    isExported = false
   of nnkPrefix:
     if name[0].strVal != "*":
       syntaxError("Invalid prefix operator for parser name")
@@ -1187,6 +1195,7 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
     pdef = postfix(name[1].copyNimTree, "*")
     tname = ident(name[1].strVal.capitalizeAscii)
     tdef = postfix(ident(name[1].strVal.capitalizeAscii), "*")
+    isExported = true
   else:
     syntaxError("Invalid syntax for parser name")
   var
@@ -1266,7 +1275,7 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
     writerProcForwardDecl[3].add p.copyNimTree
     readerProc[3].add p.copyNimTree
     writerProc[3].add p.copyNimTree
-  let (procTo, procFrom) = generateConverters(tname, pname, params)
+  let (procTo, procFrom) = generateConverters(tname, pname, params, isExported)
   result.add(quote do:
     `readerProcForwardDecl`
     `writerProcForwardDecl`
@@ -1353,6 +1362,7 @@ macro createVariantParser*(name, disc: untyped; rest: varargs[untyped]): untyped
     pdef: NimNode
     tname: NimNode
     tdef: NimNode
+    isExported: bool
   case name.kind
   of nnkIdent:
     if name.strVal[0].isUpperAscii:
@@ -1361,6 +1371,7 @@ macro createVariantParser*(name, disc: untyped; rest: varargs[untyped]): untyped
     pdef = name.copyNimTree
     tname = ident(name.strVal.capitalizeAscii)
     tdef = ident(name.strVal.capitalizeAscii)
+    isExported = false
   of nnkPrefix:
     if name[0].strVal != "*":
       syntaxError("Invalid prefix operator for parser name")
@@ -1368,6 +1379,7 @@ macro createVariantParser*(name, disc: untyped; rest: varargs[untyped]): untyped
     pdef = postfix(name[1].copyNimTree, "*")
     tname = ident(name[1].strVal.capitalizeAscii)
     tdef = postfix(ident(name[1].strVal.capitalizeAscii), "*")
+    isExported = true
   else:
     syntaxError("Invalid syntax for parser name")
   let
@@ -1504,7 +1516,7 @@ macro createVariantParser*(name, disc: untyped; rest: varargs[untyped]): untyped
     writerProcForwardDecl[3].add p.copyNimTree
     readerProc[3].add p.copyNimTree
     writerProc[3].add p.copyNimTree
-  let (procTo, procFrom) = generateConverters(tname, pname, params)
+  let (procTo, procFrom) = generateConverters(tname, pname, params, isExported)
   result.add(quote do:
     `readerProcForwardDecl`
     `writerProcForwardDecl`
