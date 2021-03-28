@@ -13,6 +13,6 @@ createParser(parser):
   s: _ = "DEF"
 
 block:
-  var fbs = newFileBitStream("tests/data/aligned.hex")
+  var fbs = newFileBitStream("data/aligned.hex")
   defer: close(fbs)
   discard parser.get(fbs)

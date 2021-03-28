@@ -13,7 +13,7 @@ createParser(parser, endian = l, bitEndian = r):
   n4: fourth
 
 block:
-  var fbs = newFileBitStream("tests/data/options.hex")
+  var fbs = newFileBitStream("data/options.hex")
   defer: close(fbs)
   let data = parser.get(fbs)
   assert data.little == 128

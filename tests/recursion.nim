@@ -9,7 +9,7 @@ createParser(parser):
   *parser {cond: hasChild.bool}: child
 
 block:
-  var fbs = newFileBitStream("tests/data/recursion.hex")
+  var fbs = newFileBitStream("data/recursion.hex")
   defer: close(fbs)
   let data = parser.get(fbs)
   assert data.hasChild == 1

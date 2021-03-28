@@ -13,7 +13,7 @@ createParser(parser):
   s: term = "DEF"
 
 block:
-  var fbs = newFileBitStream("tests/data/aligned.hex")
+  var fbs = newFileBitStream("data/aligned.hex")
   defer: close(fbs)
   let data = parser.get(fbs)
   assert data.beword == 0x1234

@@ -15,7 +15,7 @@ createParser(unaligned):
   57: h
 
 block:
-  var fbs = newFileBitStream("tests/data/unaligned.hex")
+  var fbs = newFileBitStream("data/unaligned.hex")
   defer: close(fbs)
   let data = unaligned.get(fbs)
   assert data.a == 1

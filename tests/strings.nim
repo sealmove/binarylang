@@ -17,7 +17,7 @@ createParser(parser):
   s: _ = "END"
 
 block:
-  var fbs = newFileBitStream("tests/data/strings.hex")
+  var fbs = newFileBitStream("data/strings.hex")
   defer: close(fbs)
   let data = parser.get(fbs)
   assert data.a == "AB"

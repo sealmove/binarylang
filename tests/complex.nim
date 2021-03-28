@@ -15,7 +15,7 @@ createParser(parser):
   *innerWithArgs(x, y): z
 
 block:
-  var fbs = newFileBitStream("tests/data/complex.hex")
+  var fbs = newFileBitStream("data/complex.hex")
   defer: close(fbs)
   let data = parser.get(fbs)
   assert data.x == 0x55

@@ -11,7 +11,7 @@ createParser(parser):
   f32 {cond: x == 0x1234}: yes
 
 block:
-  var fbs = newFileBitStream("tests/data/aligned.hex")
+  var fbs = newFileBitStream("data/aligned.hex")
   defer: close(fbs)
   let data = parser.get(fbs)
   assert data.x == 0x1234

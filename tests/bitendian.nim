@@ -23,7 +23,7 @@ createParser(parser, bitEndian = r):
   1: b16
 
 block:
-  var fbs = newFileBitStream("tests/data/bitendian.hex")
+  var fbs = newFileBitStream("data/bitendian.hex")
   defer: close(fbs)
   let data = parser.get(fbs)
   assert data.b1 == 0

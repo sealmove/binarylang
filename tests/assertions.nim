@@ -14,7 +14,7 @@ createParser(parser):
   *inner: inr
 
 block:
-  var fbs = newFileBitStream("tests/data/assertions.hex")
+  var fbs = newFileBitStream("data/assertions.hex")
   defer: close(fbs)
   let data = parser.get(fbs)
   assert data.str == "ABC"

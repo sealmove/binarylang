@@ -11,7 +11,7 @@ createParser(parser):
   8: y
 
 block:
-  var fbs = newFileBitStream("tests/data/substreams.hex")
+  var fbs = newFileBitStream("data/substreams.hex")
   defer: close(fbs)
   let data = parser.get(fbs)
   assert data.x.x == 0x12

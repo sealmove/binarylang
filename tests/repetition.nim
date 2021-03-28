@@ -15,7 +15,7 @@ createParser(parser):
   3: trios{s.atEnd}
 
 block:
-  var fbs = newFileBitStream("tests/data/repetition.hex")
+  var fbs = newFileBitStream("data/repetition.hex")
   defer: close(fbs)
   let data = parser.get(fbs)
   assert data.complex[0].x == @[1'i8]

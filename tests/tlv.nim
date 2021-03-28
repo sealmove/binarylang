@@ -17,7 +17,7 @@ createParser(parser):
   *tlv(code2): variant2
 
 block:
-  var fbs = newFileBitStream("tests/data/aligned.hex")
+  var fbs = newFileBitStream("data/aligned.hex")
   defer: close(fbs)
   let data = parser.get(fbs)
   assert data.code1 == 0x12
