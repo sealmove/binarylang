@@ -14,3 +14,4 @@ templates, and configure the way you interact with your data.
 - [Changelog](https://sealmove.github.io/binarylang/changelog.html)
 - Tutorials, write-ups, articles
   - [Ajusa on HTTP](https://ajusa.github.io/binarylang-fun/intro.html)
+  - [Ajusa on Web Scraping](https://ajusa.github.io/binarylang-fun/scraping.html)
