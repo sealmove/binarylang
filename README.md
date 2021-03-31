@@ -11,7 +11,6 @@ templates, and configure the way you interact with your data.
 
 ## Documentation
 - [Manual](https://sealmove.github.io/binarylang/)
-- [Tutorial](https://sealmove.github.io/binarylang/tutorial.html)
 - [Changelog](https://sealmove.github.io/binarylang/changelog.html)
 - Tutorials, write-ups, articles
-  - [Ajusa on HTML](https://ajusa.github.io/binarylang-fun/intro.html)
+  - [Ajusa on HTTP](https://ajusa.github.io/binarylang-fun/intro.html)
