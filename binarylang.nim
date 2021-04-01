@@ -1412,9 +1412,20 @@ macro createVariantParser*(name, disc: untyped; rest: varargs[untyped]): untyped
     paramsSymbolTable = collect(newSeq):
       for p in params:
         p[0].strVal
+  var
     variations = collect(newSeq):
       for def in rest[^1]:
         decodeVariation(def, paramsSymbolTable, parserOptions)
+  for v in variations:
+    if v.isEmpty:
+      continue
+    for i in 0 ..< v.fields.len - 1:
+      if v.fields[i].val.isMagic or
+        (v.fields[i].typ.kind == kStr and v.fields[i+1].val.valueExpr != nil):
+        if v.fields[i+1].val.valueExpr == nil:
+          raise newException(Defect,
+            "Magic was used without assertion at the next field")
+        v.fields[i].magic = v.fields[i+1]
   for v in variations:
     let left =
       if v.isEmpty:
@@ -1425,6 +1436,8 @@ macro createVariantParser*(name, disc: untyped; rest: varargs[untyped]): untyped
           if f.val.name != "":
             var impl = f.typ.getImpl
             if f.val.repeat != rNo:
+              impl = quote do: seq[`impl`]
+            if f.val.isMagic:
               impl = quote do: seq[`impl`]
             rl.add(
               newIdentDefs(
