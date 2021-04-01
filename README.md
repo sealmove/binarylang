@@ -6,7 +6,7 @@ It supports syntax for creating simple common parsers (ints, floats, strings),
 as well as ways for synthesizing more complex parsers out of simpler ones.
 Therefore, it is similar to a parser combinator framework.
 
-Moreover, you can mix DSL-generated parsers with custom parsers, extend the DSL using
+Moreover, you can mix DSL-generated parsers with custom ones, extend the DSL using
 templates, and configure the way you interact with your data.
 
 ## Documentation

@@ -1311,7 +1311,7 @@ proc decodeVariation(def: NimNode, st: seq[string], opts: Options):
     for f in def[1]:
       fields.add(decodeField(f, symbolTable, opts))
     result.fields = fields
-    result.st = st
+    result.st = symbolTable
 
 macro createVariantParser*(name, disc: untyped; rest: varargs[untyped]): untyped =
   ## Input:
