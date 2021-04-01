@@ -1,5 +1,5 @@
 # Package
-version       = "0.3.1"
+version       = "0.3.2"
 author        = "Stefanos Mandalas"
 description   = "Binary parser/encoder DSL"
 license       = "MIT"

@@ -29,3 +29,9 @@ v0.3.1 (25 March 2021)
 - Implemented *converters* properly. They are now procs with the names:
   - ``from<parser>``
   - ``to<parser>``
+
+v0.3.2 (2 April 2021)
+-------------------------------------------------------------------------------
+- Bugfix: symbol table under branches of variant parsers was not updated after
+  each field
+- Bugfix: anonymous fields in variant parsers were not discarded

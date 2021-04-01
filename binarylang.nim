@@ -1422,14 +1422,15 @@ macro createVariantParser*(name, disc: untyped; rest: varargs[untyped]): untyped
       else:
         var rl = newTree(nnkRecList)
         for f in v.fields:
-          var impl = f.typ.getImpl
-          if f.val.repeat != rNo:
-            impl = quote do: seq[`impl`]
-          rl.add(
-            newIdentDefs(
-              if f.val.isExported: postfix(f.symbol, "*")
-              else: f.symbol,
-              impl))
+          if f.val.name != "":
+            var impl = f.typ.getImpl
+            if f.val.repeat != rNo:
+              impl = quote do: seq[`impl`]
+            rl.add(
+              newIdentDefs(
+                if f.val.isExported: postfix(f.symbol, "*")
+                else: f.symbol,
+                impl))
         rl
     if v.isElseBranch:
       objectMeat.add(
