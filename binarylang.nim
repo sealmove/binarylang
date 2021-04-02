@@ -1140,11 +1140,11 @@ proc generateConverters(tname, pname: NimNode; params: seq[NimNode];
     putCall.add(p[0].copyNimTree)
   result = (
     newProc(
-      ident("to" & tname.strVal),
+      toConv,
       procToParams,
       procToBody),
     newProc(
-      ident("from" & tname.strVal),
+      fromConv,
       procFromParams,
       newStmtList(
         (quote do:

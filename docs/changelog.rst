@@ -35,3 +35,8 @@ v0.3.2 (2 April 2021)
 - Bugfix: symbol table under branches of variant parsers was not updated after
   each field
 - Bugfix: anonymous fields in variant parsers were not discarded
+
+v0.3.3 (2 April 2021)
+-------------------------------------------------------------------------------
+- Bugfix: Magic now works properly in ``createVariantParser``
+- Converters are now also exported when exporting the corresponding parser
