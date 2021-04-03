@@ -91,22 +91,25 @@ function main() {
     </select>
   </div>
   <ul class="simple simple-toc" id="toc-list">
-<li><a class="reference" id="parser-options_toc" href="#parser-options">Parser options</a></li>
-<li><a class="reference" id="parser-parameters_toc" href="#parser-parameters">Parser parameters</a></li>
-<li><a class="reference" id="dsl_toc" href="#dsl">DSL</a></li>
-<ul class="simple"><li><a class="reference" id="dsl-types_toc" href="#dsl-types">Types</a></li>
-<li><a class="reference" id="dsl-alignment_toc" href="#dsl-alignment">Alignment</a></li>
-<li><a class="reference" id="dsl-assertion_toc" href="#dsl-assertion">Assertion</a></li>
-<li><a class="reference" id="dsl-product-type_toc" href="#dsl-product-type">Product type</a></li>
-<li><a class="reference" id="dsl-sum-type_toc" href="#dsl-sum-type">Sum type</a></li>
-<li><a class="reference" id="dsl-repetition_toc" href="#dsl-repetition">Repetition</a></li>
-<li><a class="reference" id="dsl-substreams_toc" href="#dsl-substreams">Substreams</a></li>
-<li><a class="reference" id="dsl-strings_toc" href="#dsl-strings">Strings</a></li>
-<li><a class="reference" id="dsl-custom-parser-api_toc" href="#dsl-custom-parser-api">Custom parser API</a></li>
-<li><a class="reference" id="dsl-operations_toc" href="#dsl-operations">Operations</a></li>
-<li><a class="reference" id="dsl-properties_toc" href="#dsl-properties">Properties</a></li>
-<li><a class="reference" id="dsl-special-notes_toc" href="#dsl-special-notes">Special notes</a></li>
-</ul><li>
+<li><a class="reference" id="dsl-invocation_toc" href="#dsl-invocation">DSL invocation</a></li>
+<ul class="simple"><li><a class="reference" id="dsl-invocation-parser-options_toc" href="#dsl-invocation-parser-options">Parser options</a></li>
+<li><a class="reference" id="dsl-invocation-parser-parameters_toc" href="#dsl-invocation-parser-parameters">Parser parameters</a></li>
+</ul><li><a class="reference" id="types_toc" href="#types">Types</a></li>
+<ul class="simple"><li><a class="reference" id="types-primitive-types_toc" href="#types-primitive-types">Primitive types</a></li>
+<li><a class="reference" id="types-product-type_toc" href="#types-product-type">Product type</a></li>
+<li><a class="reference" id="types-sum-type_toc" href="#types-sum-type">Sum type</a></li>
+</ul><li><a class="reference" id="features_toc" href="#features">Features</a></li>
+<ul class="simple"><li><a class="reference" id="features-alignment_toc" href="#features-alignment">Alignment</a></li>
+<li><a class="reference" id="features-assertion_toc" href="#features-assertion">Assertion</a></li>
+<li><a class="reference" id="features-repetition_toc" href="#features-repetition">Repetition</a></li>
+<li><a class="reference" id="features-substreams_toc" href="#features-substreams">Substreams</a></li>
+<li><a class="reference" id="features-strings_toc" href="#features-strings">Strings</a></li>
+</ul><li><a class="reference" id="extensions_toc" href="#extensions">Extensions</a></li>
+<ul class="simple"><li><a class="reference" id="extensions-custom-parser-api_toc" href="#extensions-custom-parser-api">Custom parser API</a></li>
+<li><a class="reference" id="extensions-operations_toc" href="#extensions-operations">Operations</a></li>
+<li><a class="reference" id="extensions-properties_toc" href="#extensions-properties">Properties</a></li>
+</ul><li><a class="reference" id="special-notes_toc" href="#special-notes">Special notes</a></li>
+<li>
   <a class="reference reference-toplevel" href="#7" id="57">Types</a>
   <ul class="simple simple-toc-section">
       <li><a class="reference" href="#MagicError"
@@ -139,8 +142,8 @@ function main() {
   <div class="nine columns" id="content">
   <div id="tocRoot"></div>
   
-  <p class="module-desc"><p>BinaryLang is a DSL for creating binary parsers/encoders.</p>
-<p>It exports two macros:</p>
+  <p class="module-desc">
+<h1><a class="toc-backref" id="dsl-invocation" href="#dsl-invocation">DSL invocation</a></h1><p>Two macros are exported:</p>
 <ul class="simple"><li><tt class="docutils literal"><span class="pre">struct</span></tt> which is used to produce a <em>product parser</em></li>
 <li><tt class="docutils literal"><span class="pre">union</span></tt> which is used to produce a <em>sum parser</em></li>
 </ul>
@@ -148,8 +151,10 @@ function main() {
 <ul class="simple"><li><tt class="docutils literal"><span class="pre">get</span></tt> returns an object with each parsed field</li>
 <li><tt class="docutils literal"><span class="pre">put</span></tt> writes an object to a stream</li>
 </ul>
+<p>Each statement corresponds to 1 field. The general syntax is:</p>
+<pre class="listing">type {plugin: expr, ...}: name (...)</pre><p>For the name you use <tt class="docutils literal"><span class="pre">_</span></tt> to discard the field, or prepend it with <tt class="docutils literal"><span class="pre">*</span></tt> to export it.</p>
 
-<h1><a class="toc-backref" id="parser-options" href="#parser-options">Parser options</a></h1><p>Each specified option must be in the form <tt class="docutils literal"><span class="pre">option = value</span></tt>:</p>
+<h2><a class="toc-backref" id="dsl-invocation-parser-options" href="#dsl-invocation-parser-options">Parser options</a></h2><p>Each specified option must be in the form <tt class="docutils literal"><span class="pre">option = value</span></tt>:</p>
 <ul class="simple"><li><dl class="docutils"><dt><tt class="docutils literal"><span class="pre">endian</span></tt>: sets the default byte endianness for the whole parser</dt>
 <dd><ul class="simple"><li><em>default</em>: big endian</li>
 <li><tt class="docutils literal"><span class="pre">b</span></tt>: <strong>big</strong> endian</li>
@@ -168,19 +173,16 @@ function main() {
 </li>
 </ul>
 
-<h1><a class="toc-backref" id="parser-parameters" href="#parser-parameters">Parser parameters</a></h1><p>Each parameter must be in the form <tt class="docutils literal"><span class="pre">symbol: type</span></tt>. The generated <tt class="docutils literal"><span class="pre">get</span></tt>/<tt class="docutils literal"><span class="pre">put</span></tt> procs will then have this additional parameter appended.</p>
+<h2><a class="toc-backref" id="dsl-invocation-parser-parameters" href="#dsl-invocation-parser-parameters">Parser parameters</a></h2><p>Each parameter must be in the form <tt class="docutils literal"><span class="pre">symbol: type</span></tt>. The generated <tt class="docutils literal"><span class="pre">get</span></tt>/<tt class="docutils literal"><span class="pre">put</span></tt> procs will then have this additional parameter appended.</p>
+<p>The only exception is the discriminator field for <strong>sum</strong> parsers which is always named <tt class="docutils literal"><span class="pre">disc</span></tt> implicitly; and therefore, only the type must be provided -instead of an expression-colon-expression-.</p>
 
-<h1><a class="toc-backref" id="dsl" href="#dsl">DSL</a></h1><p>Each statement corresponds to 1 field. The general syntax is:</p>
-<pre class="listing">type {plugin: expr, ...}: name (...)</pre><p>For the name you use <tt class="docutils literal"><span class="pre">_</span></tt> to discard the field, or prepend it with <tt class="docutils literal"><span class="pre">*</span></tt> to export it.</p>
-
-<h2><a class="toc-backref" id="dsl-types" href="#dsl-types">Types</a></h2><p>The <strong>kind</strong>, <strong>endianness</strong> and <strong>size</strong> are encoded in a identifier made up of:</p>
+<h1><a class="toc-backref" id="types" href="#types">Types</a></h1>
+<h2><a class="toc-backref" id="types-primitive-types" href="#types-primitive-types">Primitive types</a></h2><p>The <strong>kind</strong>, <strong>endianness</strong> and <strong>size</strong> are encoded in a identifier made up of:</p>
 <ul class="simple"><li><dl class="docutils"><dt>1 optional letter specifying the kind:</dt>
 <dd><ul class="simple"><li><em>default</em>: signed integer</li>
 <li><tt class="docutils literal"><span class="pre">u</span></tt>: unsigned integer</li>
 <li><tt class="docutils literal"><span class="pre">f</span></tt>: float</li>
 <li><tt class="docutils literal"><span class="pre">s</span></tt>: string</li>
-<li><tt class="docutils literal"><span class="pre">*</span></tt>: product</li>
-<li><tt class="docutils literal"><span class="pre">+</span></tt>: sum</li>
 </ul>
 </dd>
 </dl>
@@ -205,31 +207,15 @@ function main() {
 <dd><ul class="simple"><li>for a string it refers to the size of each individual character and defaults to <tt class="docutils literal"><span class="pre">8</span></tt></li>
 <li>for an integer the allowed values are <tt class="docutils literal"><span class="pre">1 .. 64</span></tt></li>
 <li>for a float the allowed values are <tt class="docutils literal"><span class="pre">32</span></tt> and <tt class="docutils literal"><span class="pre">64</span></tt></li>
-<li>for a custom it can't be used (but you can use a substream, see below)</li>
 </ul>
 </dd>
 </dl>
 </li>
 </ul>
 <p>You can order options however you want, but size must come last (e.g. <tt class="docutils literal"><span class="pre">lru16</span></tt> and <tt class="docutils literal"><span class="pre">url16</span></tt> are valid but not <tt class="docutils literal"><span class="pre">16lru</span></tt>).</p>
+<p>Assertion can also be used in a special manner to terminate the previous field if it's a <strong>string</strong> or a <strong>sequence indicated as magic-terminated</strong>. This is discussed in later sections.</p>
 
-<h2><a class="toc-backref" id="dsl-alignment" href="#dsl-alignment">Alignment</a></h2><p>If any of the following is violated, BinaryLang should generate an exception:</p>
-<ul class="simple"><li>Byte endianness can only be used with byte-multiple integers</li>
-<li>Bit endianness must be uniform between <strong>byte boundaries</strong></li>
-<li>Spec must finish on a byte boundary</li>
-</ul>
-<pre class="listing"><span class="Identifier">struct</span><span class="Punctuation">(</span><span class="Identifier">parser</span><span class="Punctuation">,</span> <span class="Identifier">bitEndian</span> <span class="Operator">=</span> <span class="Identifier">n</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
-  <span class="Identifier">b9</span><span class="Punctuation">:</span> <span class="Identifier">a</span> <span class="Comment"># error: cannot apply byte endianness</span>
-  <span class="Identifier">r6</span><span class="Punctuation">:</span> <span class="Identifier">b</span> <span class="Comment"># error: shares bits with previous byte</span>
-  <span class="DecNumber">10</span><span class="Punctuation">:</span> <span class="Identifier">c</span> <span class="Comment"># error: spec does not finish on a byte boundary</span></pre><p>Moreover, unaligned reads for strings are not supported:</p>
-<pre class="listing"><span class="Identifier">struct</span><span class="Punctuation">(</span><span class="Identifier">parser</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
-  <span class="DecNumber">6</span><span class="Punctuation">:</span> <span class="Identifier">x</span>
-  <span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">y</span> <span class="Comment"># invalid, generates an exception</span></pre>
-<h2><a class="toc-backref" id="dsl-assertion" href="#dsl-assertion">Assertion</a></h2><p>Use <tt class="docutils literal"><span class="pre">= expr</span></tt> for producing an exception if the parsed value doesn't match <tt class="docutils literal"><span class="pre">expr</span></tt>:</p>
-<pre class="listing"><span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">x</span> <span class="Operator">=</span> <span class="StringLit">&quot;BinaryLang is awesome&quot;</span>
-<span class="DecNumber">8</span><span class="Punctuation">:</span> <span class="Identifier">y</span><span class="Punctuation">[</span><span class="DecNumber">5</span><span class="Punctuation">]</span> <span class="Operator">=</span> <span class="Operator">@</span><span class="Punctuation">[</span><span class="DecNumber">0</span><span class="Punctuation">,</span> <span class="DecNumber">1</span><span class="Punctuation">,</span> <span class="DecNumber">2</span><span class="Punctuation">,</span> <span class="DecNumber">3</span><span class="Punctuation">,</span> <span class="DecNumber">4</span><span class="Punctuation">]</span></pre><p>Assertion can also be used in a special manner to terminate the previous field if it's a <strong>string</strong> or a <strong>sequence indicated as magic-terminated</strong>. This is discussed in later sections.</p>
-
-<h2><a class="toc-backref" id="dsl-product-type" href="#dsl-product-type">Product type</a></h2><p>A parser is of type <em>product</em> if it is created with the <tt class="docutils literal"><span class="pre">struct</span></tt> macro or <em>by hand</em>, as explained in a later section. To call a product parser you must use <tt class="docutils literal"><span class="pre">*</span></tt> followed by the name of the parser. If your parser requires arguments, you must them using standard call syntax.</p>
+<h2><a class="toc-backref" id="types-product-type" href="#types-product-type">Product type</a></h2><p>A parser is of type <strong>product</strong> if it is created with the <tt class="docutils literal"><span class="pre">struct</span></tt> macro or <em>by hand</em>, as explained in a later section. To call a product parser you must use <tt class="docutils literal"><span class="pre">*</span></tt> followed by the name of the parser. If your parser requires arguments, you must them using standard call syntax.</p>
 <p>Example:</p>
 <pre class="listing"><span class="Identifier">struct</span><span class="Punctuation">(</span><span class="Identifier">inner</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
   <span class="DecNumber">32</span><span class="Punctuation">:</span> <span class="Identifier">a</span>
@@ -242,7 +228,7 @@ function main() {
 <span class="Identifier">struct</span><span class="Punctuation">(</span><span class="Identifier">outer</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
   <span class="Operator">*</span><span class="Identifier">inner</span><span class="Punctuation">:</span> <span class="Identifier">x</span>
   <span class="Operator">*</span><span class="Identifier">innerWithArgs</span><span class="Punctuation">(</span><span class="Identifier">x</span><span class="Operator">.</span><span class="Identifier">a</span><span class="Punctuation">)</span><span class="Punctuation">:</span> <span class="Identifier">y</span></pre>
-<h2><a class="toc-backref" id="dsl-sum-type" href="#dsl-sum-type">Sum type</a></h2><p>A parser is of type <em>sum</em> if it is created with the <tt class="docutils literal"><span class="pre">union</span></tt> macro or <em>by hand</em>, as explained in a later section. A sum parser has a special field called the <em>discriminator</em> which determines which branch will be activated at run-time -similarly to <em>object variants</em>-.</p>
+<h2><a class="toc-backref" id="types-sum-type" href="#types-sum-type">Sum type</a></h2><p>A parser is of type <strong>sum</strong> if it is created with the <tt class="docutils literal"><span class="pre">union</span></tt> macro or <em>by hand</em>, as explained in a later section. A sum parser has a special field called the <em>discriminator</em> which determines which branch will be activated at run-time -similarly to <em>object variants</em>-.</p>
 <p>To call a sum parser you must use <tt class="docutils literal"><span class="pre">+</span></tt> followed by a call-syntaxed expression. The callee is the name of the parser and the first argument is the value of the <em>discriminator</em> field. If the parser requires additional arguments, they also have to be provided. The first argument is treated in a special manner. Unlike other arguments, this one is only evaluated during parsing, whereas during serialization the value stored in the <tt class="docutils literal"><span class="pre">disc</span></tt> field is used.</p>
 <p>Example:</p>
 <pre class="listing"><span class="Identifier">union</span><span class="Punctuation">(</span><span class="Identifier">inner</span><span class="Punctuation">,</span> <span class="Identifier">byte</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
@@ -252,7 +238,23 @@ function main() {
 
 <span class="Identifier">struct</span><span class="Punctuation">(</span><span class="Identifier">outer</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
   <span class="Operator">+</span><span class="Identifier">inner</span><span class="Punctuation">(</span><span class="DecNumber">0</span><span class="Punctuation">)</span><span class="Punctuation">:</span> <span class="Identifier">x</span></pre>
-<h2><a class="toc-backref" id="dsl-repetition" href="#dsl-repetition">Repetition</a></h2><p>There are 3 ways to produce a <tt class="docutils literal"><span class="pre">seq</span></tt> of your type:</p>
+<h1><a class="toc-backref" id="features" href="#features">Features</a></h1>
+<h2><a class="toc-backref" id="features-alignment" href="#features-alignment">Alignment</a></h2><p>If any of the following is violated, BinaryLang should generate an exception:</p>
+<ul class="simple"><li>Byte endianness can only be used with byte-multiple integers</li>
+<li>Bit endianness must be uniform between <strong>byte boundaries</strong></li>
+<li>Spec must finish on a byte boundary</li>
+</ul>
+<pre class="listing"><span class="Identifier">struct</span><span class="Punctuation">(</span><span class="Identifier">parser</span><span class="Punctuation">,</span> <span class="Identifier">bitEndian</span> <span class="Operator">=</span> <span class="Identifier">n</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
+  <span class="Identifier">b9</span><span class="Punctuation">:</span> <span class="Identifier">a</span> <span class="Comment"># error: cannot apply byte endianness</span>
+  <span class="Identifier">r6</span><span class="Punctuation">:</span> <span class="Identifier">b</span> <span class="Comment"># error: shares bits with previous byte</span>
+  <span class="DecNumber">10</span><span class="Punctuation">:</span> <span class="Identifier">c</span> <span class="Comment"># error: spec does not finish on a byte boundary</span></pre><p>Moreover, unaligned reads for strings are not supported:</p>
+<pre class="listing"><span class="Identifier">struct</span><span class="Punctuation">(</span><span class="Identifier">parser</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
+  <span class="DecNumber">6</span><span class="Punctuation">:</span> <span class="Identifier">x</span>
+  <span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">y</span> <span class="Comment"># invalid, generates an exception</span></pre>
+<h2><a class="toc-backref" id="features-assertion" href="#features-assertion">Assertion</a></h2><p>Use <tt class="docutils literal"><span class="pre">= expr</span></tt> for producing an exception if the parsed value doesn't match <tt class="docutils literal"><span class="pre">expr</span></tt>:</p>
+<pre class="listing"><span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">x</span> <span class="Operator">=</span> <span class="StringLit">&quot;BinaryLang is awesome&quot;</span>
+<span class="DecNumber">8</span><span class="Punctuation">:</span> <span class="Identifier">y</span><span class="Punctuation">[</span><span class="DecNumber">5</span><span class="Punctuation">]</span> <span class="Operator">=</span> <span class="Operator">@</span><span class="Punctuation">[</span><span class="DecNumber">0</span><span class="Punctuation">,</span> <span class="DecNumber">1</span><span class="Punctuation">,</span> <span class="DecNumber">2</span><span class="Punctuation">,</span> <span class="DecNumber">3</span><span class="Punctuation">,</span> <span class="DecNumber">4</span><span class="Punctuation">]</span></pre>
+<h2><a class="toc-backref" id="features-repetition" href="#features-repetition">Repetition</a></h2><p>There are 3 ways to produce a <tt class="docutils literal"><span class="pre">seq</span></tt> of your type:</p>
 <ul class="simple"><li><tt class="docutils literal"><span class="pre">for</span></tt>: append <tt class="docutils literal"><span class="pre">[expr]</span></tt> to the name for repeating <tt class="docutils literal"><span class="pre">expr</span></tt> times</li>
 <li><tt class="docutils literal"><span class="pre">until</span></tt>: append <tt class="docutils literal"><span class="pre">{expr}</span></tt> to the name for repeating until <tt class="docutils literal"><span class="pre">expr</span></tt> is evaluated to <tt class="docutils literal"><span class="pre">true</span></tt></li>
 <li><tt class="docutils literal"><span class="pre">magic</span></tt>: enclose name with <tt class="docutils literal"><span class="pre">{}</span></tt> and use assertion with your <strong>next</strong> field</li>
@@ -277,7 +279,7 @@ function main() {
   <span class="Operator">*</span><span class="Identifier">inner</span><span class="Punctuation">(</span><span class="Identifier">sizes</span><span class="Punctuation">[</span><span class="Identifier">i</span><span class="Punctuation">]</span><span class="Punctuation">)</span><span class="Punctuation">:</span> <span class="Identifier">aux</span><span class="Punctuation">[</span><span class="Identifier">amount</span><span class="Punctuation">]</span></pre><p>With the above trick you can get a sequence of variable-length sequences.</p>
 <p>Due to current limitations of the underlying bitstream implementation, to perform magic, your stream must be aligned and all the reads involved must also be aligned. This will be fixed in the future.</p>
 
-<h2><a class="toc-backref" id="dsl-substreams" href="#dsl-substreams">Substreams</a></h2><p>Call syntax forces the creation of a substream:</p>
+<h2><a class="toc-backref" id="features-substreams" href="#features-substreams">Substreams</a></h2><p>Call syntax forces the creation of a substream:</p>
 <pre class="listing"><span class="Identifier">struct</span><span class="Punctuation">(</span><span class="Identifier">aux</span><span class="Punctuation">,</span> <span class="Identifier">size</span><span class="Punctuation">:</span> <span class="Identifier">int</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
   <span class="DecNumber">8</span><span class="Punctuation">:</span> <span class="Identifier">x</span><span class="Punctuation">[</span><span class="Identifier">size</span><span class="Punctuation">]</span>
 <span class="Identifier">struct</span><span class="Punctuation">(</span><span class="Identifier">parser</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
@@ -289,7 +291,7 @@ function main() {
 <pre class="listing"><span class="Identifier">struct</span><span class="Punctuation">(</span><span class="Identifier">parser</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
   <span class="Identifier">u8</span><span class="Punctuation">:</span> <span class="Identifier">a</span><span class="Punctuation">[</span><span class="DecNumber">4</span><span class="Punctuation">]</span><span class="Punctuation">(</span><span class="DecNumber">6</span><span class="Punctuation">)</span> <span class="Comment"># does substream refer to each individual element or the</span>
               <span class="Comment"># whole sequence?</span></pre>
-<h2><a class="toc-backref" id="dsl-strings" href="#dsl-strings">Strings</a></h2><p>Strings are special because they don't have a fixed size. Therefore, you must provide enough information regarding their termination. This can be achieved with one of the following:</p>
+<h2><a class="toc-backref" id="features-strings" href="#features-strings">Strings</a></h2><p>Strings are special because they don't have a fixed size. Therefore, you must provide enough information regarding their termination. This can be achieved with one of the following:</p>
 <ul class="simple"><li>Use of substream</li>
 <li>Assertion</li>
 <li>Magic</li>
@@ -308,7 +310,8 @@ function main() {
 <li>When using repetition, each string element is null-terminated</li>
 </ul>
 
-<h2><a class="toc-backref" id="dsl-custom-parser-api" href="#dsl-custom-parser-api">Custom parser API</a></h2><p>Since a BinaryLang parser is just a <tt class="docutils literal"><span class="pre">tuple[get: proc, set: proc]</span></tt>, you can write parsers by hand that are compatible with the DSL. Just be sure that <tt class="docutils literal"><span class="pre">get</span></tt> and <tt class="docutils literal"><span class="pre">set</span></tt> have proper signatures, and there is a type with the same name as your parser but capitalized:</p>
+<h1><a class="toc-backref" id="extensions" href="#extensions">Extensions</a></h1>
+<h2><a class="toc-backref" id="extensions-custom-parser-api" href="#extensions-custom-parser-api">Custom parser API</a></h2><p>Since a BinaryLang parser is just a <tt class="docutils literal"><span class="pre">tuple[get: proc, set: proc]</span></tt>, you can write parsers by hand that are compatible with the DSL. Just be sure that <tt class="docutils literal"><span class="pre">get</span></tt> and <tt class="docutils literal"><span class="pre">set</span></tt> have proper signatures, and there is a type with the same name as your parser but capitalized:</p>
 <pre class="listing"><span class="Keyword">type</span> <span class="Identifier">Parser</span> <span class="Operator">=</span> <span class="Identifier">SomeType</span>
 <span class="Keyword">proc</span> <span class="Identifier">get</span><span class="Punctuation">(</span><span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">BitStream</span><span class="Punctuation">)</span><span class="Punctuation">:</span> <span class="Identifier">Parser</span>
 <span class="Keyword">proc</span> <span class="Identifier">put</span><span class="Punctuation">(</span><span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">BitStream</span><span class="Punctuation">,</span> <span class="Identifier">input</span><span class="Punctuation">:</span> <span class="Identifier">Parser</span><span class="Punctuation">)</span>
@@ -317,7 +320,7 @@ function main() {
 <span class="Keyword">proc</span> <span class="Identifier">get</span><span class="Punctuation">(</span><span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">BitStream</span><span class="Punctuation">,</span> <span class="Identifier">x</span><span class="Punctuation">:</span> <span class="Identifier">int</span><span class="Punctuation">,</span> <span class="Identifier">y</span><span class="Punctuation">:</span> <span class="Identifier">float</span><span class="Punctuation">)</span><span class="Punctuation">:</span> <span class="Identifier">Parser</span>
 <span class="Keyword">proc</span> <span class="Identifier">put</span><span class="Punctuation">(</span><span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">BitStream</span><span class="Punctuation">,</span> <span class="Identifier">input</span><span class="Punctuation">:</span> <span class="Identifier">Parser</span><span class="Punctuation">,</span> <span class="Identifier">x</span><span class="Punctuation">:</span> <span class="Identifier">int</span><span class="Punctuation">,</span> <span class="Identifier">y</span><span class="Punctuation">:</span> <span class="Identifier">float</span><span class="Punctuation">)</span>
 <span class="Keyword">let</span> <span class="Identifier">parser</span> <span class="Operator">=</span> <span class="Punctuation">(</span><span class="Identifier">get</span><span class="Punctuation">:</span> <span class="Identifier">get</span><span class="Punctuation">,</span> <span class="Identifier">put</span><span class="Punctuation">:</span> <span class="Identifier">put</span><span class="Punctuation">)</span></pre>
-<h2><a class="toc-backref" id="dsl-operations" href="#dsl-operations">Operations</a></h2><p>Operations can be applied to fields with the following syntax:</p>
+<h2><a class="toc-backref" id="extensions-operations" href="#extensions-operations">Operations</a></h2><p>Operations can be applied to fields with the following syntax:</p>
 <pre class="listing">type {op: expr}: name</pre><p>Operations act on data after the parsing and before the encoding respectively. The big restriction here is that an operation cannot alter the type, since the parsing/encoding type is always fixed.</p>
 <p>An operation is nothing more than a pair of templates which follow a specific pattern:</p>
 <ul class="simple"><li>The names of the templates <strong>must</strong> follow the pattern: <tt class="docutils literal"><span class="pre">&lt;operation&gt;get</span></tt> and <tt class="docutils literal"><span class="pre">&lt;operation&gt;put</span></tt></li>
@@ -357,7 +360,7 @@ function main() {
   <span class="DecNumber">8</span><span class="Punctuation">:</span> <span class="Identifier">shouldParse</span>
   <span class="DecNumber">64</span><span class="Punctuation">:</span> <span class="Identifier">x</span>
   <span class="DecNumber">16</span> <span class="Punctuation">{</span><span class="Identifier">cond</span><span class="Punctuation">:</span> <span class="Identifier">shouldParse</span><span class="Operator">.</span><span class="Identifier">bool</span><span class="Punctuation">,</span> <span class="Identifier">increase</span><span class="Punctuation">:</span> <span class="Identifier">x</span><span class="Punctuation">}</span><span class="Punctuation">:</span> <span class="Identifier">y</span></pre>
-<h2><a class="toc-backref" id="dsl-properties" href="#dsl-properties">Properties</a></h2><p>Properties follow similar syntax to operations, but the name of the property must be prefixed with <tt class="docutils literal"><span class="pre">@</span></tt>.</p>
+<h2><a class="toc-backref" id="extensions-properties" href="#extensions-properties">Properties</a></h2><p>Properties follow similar syntax to operations, but the name of the property must be prefixed with <tt class="docutils literal"><span class="pre">@</span></tt>.</p>
 <p>Properties are meant for making the interaction with the parsed data easier.</p>
 <p>There are two big differences compared to operations:</p>
 <ul class="simple"><li>They don't affect parsing/encoding - they only change the way the user interacts with data</li>
@@ -380,7 +383,7 @@ function main() {
 <span class="Keyword">var</span> <span class="Identifier">x</span><span class="Punctuation">:</span> <span class="Identifier">Parser</span>
 <span class="Identifier">echo</span> <span class="Identifier">x</span><span class="Operator">.</span><span class="Identifier">myInt</span> <span class="Operator">+</span> <span class="DecNumber">42</span>
 <span class="Identifier">x</span><span class="Operator">.</span><span class="Identifier">myInt</span> <span class="Operator">=</span> <span class="DecNumber">24</span></pre>
-<h2><a class="toc-backref" id="dsl-special-notes" href="#dsl-special-notes">Special notes</a></h2><ul class="simple"><li><dl class="docutils"><dt>Nim expressions may contain:</dt>
+<h1><a class="toc-backref" id="special-notes" href="#special-notes">Special notes</a></h1><ul class="simple"><li><dl class="docutils"><dt>Nim expressions may contain:</dt>
 <dd><ul class="simple"><li>a previously defined field</li>
 <li>a parser parameter</li>
 <li>the <tt class="docutils literal"><span class="pre">_</span></tt> symbol for <em>subject</em> element (its meaning varies)</li>
@@ -507,7 +510,7 @@ Input:<ul class="simple"><li><tt class="docutils literal"><span class="pre">name
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2021-04-03 10:56:35 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2021-04-03 11:15:45 UTC</small>
       </div>
     </div>
   </div>
