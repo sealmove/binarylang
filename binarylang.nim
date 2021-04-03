@@ -272,25 +272,23 @@
 ##    proc put(s: BitStream, input: Parser, x: int, y: float)
 ##    let parser = (get: get, put: put)
 ##
-## Operations
+## Operations **(experimental)**
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ## Operations can be applied to fields with the following syntax:
 ##
 ## .. code::
-##    type {op: expr}: name
+##    type {op(arg)}: name
 ##
 ## Operations act on data after the parsing and before the encoding
-## respectively. The big restriction here is that an operation cannot alter
-## the type, since the parsing/encoding type is always fixed.
+## respectively.
 ##
 ## An operation is nothing more than a pair of templates which follow a
 ## specific pattern:
 ## - The names of the templates **must** follow the pattern: `<operation>get`
 ##   and `<operation>put`
-## - They must have exactly 3 untyped parameters (you can name them as you wish):
+## - They must have at least 2 untyped parameters (you can name them as you wish):
 ##    - **parameter #1**: the field you operate on
 ##    - **parameter #2**: parsing/encoding statements
-##    - **parameter #3**: expression provided
 ## 
 ## .. code:: nim
 ##    template increaseGet(field, parse, num: untyped) =
@@ -301,15 +299,15 @@
 ##      encode
 ##    struct(myParser):
 ##      64: x
-##      16 {increase: x}: y
+##      16 {increase(x)}: y
 ##
 ## Note that in `increaseGet` we parse *before* operating on `field`, while in
 ## `increasePut` we encode *after* operating on `field`.
 ##
 ## You can also apply more than one operations on one field, in which case they
 ## are chained in the specified order, and there are some special rules:
-## - only the **first** operation has 3 parameters as described above
-## - the rest **must** not have a parameter for parsing/encoding, since this is
+## - only the **first** operation have a parameter for parsing/encoding
+## - the rest **must not** have a parameter for parsing/encoding, since this is
 ##   only done once
 ##
 ## .. code:: nim
@@ -326,49 +324,20 @@
 ##    struct(myParser):
 ##      8: shouldParse
 ##      64: x
-##      16 {cond: shouldParse.bool, increase: x}: y
+##      16 {cond(shouldParse.bool), increase(x)}: y
 ##
-## Properties
-## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-## Properties follow similar syntax to operations, but the name of the property
-## must be prefixed with ``@``.
-##
-## Properties are meant for making the interaction with the parsed data easier.
-##
-## There are two big differences compared to operations:
-## - They don't affect parsing/encoding - they only change the way the user
-##   interacts with data
-## - They are built-in features rather than user-defined language extensions
-##
-## The following properties are available:
-## - set
-## - get
-## - hook
-##
-## `@set` and `@get` allows you to get a different view of your data, hiding
-## the underlying implementation. This is particularly useful when the type
-## used to parse the data differs from the one you want to use to interact with
-## them in Nim.
-##
-## `@hook` allows you to run more code each time your field is mutated.
-##
-## Using any of the properties: `@set`, `@get`, `@hook` forces  the actual name
-## of the field to be generated with `genSym`, thus hiding it from the user.
-## The specified name is then used for generating a pair of *getter*/*setter*
-## procs. This way the extra code run on access/mutation is transparent to the
-## user.
-##
-## - in `@get`: `_` refers to the field
-## - in `@set` and in `@hook`: `_` refers to the value being assigned
-##   to the field
+## If the operation you apply alters the type of the field, then you must
+## provide the new type in square brackets:
 ##
 ## .. code:: nim
-##    struct(parser):
-##      s {@get: _.parseInt, @set: $_}: myInt
-##
-##    var x: Parser
-##    echo x.myInt + 42
-##    x.myInt = 24
+##    template asciiNumGet(field, parse: untyped) =
+##      parse
+##      char(field - '0')
+##    template asciiNumPut(field, encode: untyped) =
+##      int8(field + '0')
+##      encode
+##    struct(myParser):
+##      8 {asciiNum[char]}: x
 ##
 ## Special notes
 ## ----------------------------------------------------------------------------
