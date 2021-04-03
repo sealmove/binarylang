@@ -340,20 +340,19 @@ function main() {
 <span class="Identifier">struct</span><span class="Punctuation">(</span><span class="Identifier">myParser</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
   <span class="DecNumber">64</span><span class="Punctuation">:</span> <span class="Identifier">x</span>
   <span class="DecNumber">16</span> <span class="Punctuation">{</span><span class="Identifier">increase</span><span class="Punctuation">(</span><span class="Identifier">x</span><span class="Punctuation">)</span><span class="Punctuation">}</span><span class="Punctuation">:</span> <span class="Identifier">y</span></pre><p>Note that in <tt class="docutils literal"><span class="pre">increaseGet</span></tt> we parse <em>before</em> operating on <tt class="docutils literal"><span class="pre">field</span></tt>, while in <tt class="docutils literal"><span class="pre">increasePut</span></tt> we encode <em>after</em> operating on <tt class="docutils literal"><span class="pre">field</span></tt>.</p>
-<p>You can also apply more than one operations on one field, in which case they are chained in the specified order, and there are some special rules:</p>
-<ul class="simple"><li>only the <strong>first</strong> operation have a parameter for parsing/encoding</li>
-<li>the rest <strong>must not</strong> have a parameter for parsing/encoding, since this is only done once</li>
-</ul>
+<p>You can also apply more than one operations on one field, in which case they are chained in the specified order, and only the first plugin really does any parsing/encoding. The rest just operate on the value produced by the operation directly before them.</p>
 <pre class="listing"><span class="Keyword">template</span> <span class="Identifier">condGet</span><span class="Punctuation">(</span><span class="Identifier">field</span><span class="Punctuation">,</span> <span class="Identifier">parse</span><span class="Punctuation">,</span> <span class="Identifier">cond</span><span class="Punctuation">:</span> <span class="Identifier">untyped</span><span class="Punctuation">)</span> <span class="Operator">=</span>
   <span class="Keyword">if</span> <span class="Identifier">cond</span><span class="Punctuation">:</span>
     <span class="Identifier">parse</span>
 <span class="Keyword">template</span> <span class="Identifier">condPut</span><span class="Punctuation">(</span><span class="Identifier">field</span><span class="Punctuation">,</span> <span class="Identifier">encode</span><span class="Punctuation">,</span> <span class="Identifier">cond</span><span class="Punctuation">:</span> <span class="Identifier">untyped</span><span class="Punctuation">)</span> <span class="Operator">=</span>
   <span class="Keyword">if</span> <span class="Identifier">cond</span><span class="Punctuation">:</span>
     <span class="Identifier">encode</span>
-<span class="Keyword">template</span> <span class="Identifier">increaseGet</span><span class="Punctuation">(</span><span class="Identifier">field</span><span class="Punctuation">,</span> <span class="Identifier">num</span><span class="Punctuation">:</span> <span class="Identifier">untyped</span><span class="Punctuation">)</span> <span class="Operator">=</span>
+<span class="Keyword">template</span> <span class="Identifier">increaseGet</span><span class="Punctuation">(</span><span class="Identifier">field</span><span class="Punctuation">,</span> <span class="Identifier">pull</span><span class="Punctuation">,</span> <span class="Identifier">num</span><span class="Punctuation">:</span> <span class="Identifier">untyped</span><span class="Punctuation">)</span> <span class="Operator">=</span>
+  <span class="Identifier">pull</span>
   <span class="Identifier">field</span> <span class="Operator">+=</span> <span class="Identifier">num</span>
-<span class="Keyword">template</span> <span class="Identifier">increasePut</span><span class="Punctuation">(</span><span class="Identifier">field</span><span class="Punctuation">,</span> <span class="Identifier">num</span><span class="Punctuation">:</span> <span class="Identifier">untyped</span><span class="Punctuation">)</span> <span class="Operator">=</span>
+<span class="Keyword">template</span> <span class="Identifier">increasePut</span><span class="Punctuation">(</span><span class="Identifier">field</span><span class="Punctuation">,</span> <span class="Identifier">push</span><span class="Punctuation">,</span> <span class="Identifier">num</span><span class="Punctuation">:</span> <span class="Identifier">untyped</span><span class="Punctuation">)</span> <span class="Operator">=</span>
   <span class="Identifier">field</span> <span class="Operator">-=</span> <span class="Identifier">num</span>
+  <span class="Identifier">push</span>
 <span class="Identifier">struct</span><span class="Punctuation">(</span><span class="Identifier">myParser</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
   <span class="DecNumber">8</span><span class="Punctuation">:</span> <span class="Identifier">shouldParse</span>
   <span class="DecNumber">64</span><span class="Punctuation">:</span> <span class="Identifier">x</span>
@@ -493,7 +492,7 @@ Input:<ul class="simple"><li><tt class="docutils literal"><span class="pre">name
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2021-04-03 22:29:42 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2021-04-03 22:48:13 UTC</small>
       </div>
     </div>
   </div>
