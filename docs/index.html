@@ -106,8 +106,7 @@ function main() {
 <li><a class="reference" id="features-strings_toc" href="#features-strings">Strings</a></li>
 </ul><li><a class="reference" id="extensions_toc" href="#extensions">Extensions</a></li>
 <ul class="simple"><li><a class="reference" id="extensions-custom-parser-api_toc" href="#extensions-custom-parser-api">Custom parser API</a></li>
-<li><a class="reference" id="extensions-operations_toc" href="#extensions-operations">Operations</a></li>
-<li><a class="reference" id="extensions-properties_toc" href="#extensions-properties">Properties</a></li>
+<li><a class="reference" id="extensions-operations-experimental_toc" href="#extensions-operations-experimental">Operations <strong>(experimental)</strong></a></li>
 </ul><li><a class="reference" id="special-notes_toc" href="#special-notes">Special notes</a></li>
 <li>
   <a class="reference reference-toplevel" href="#7" id="57">Types</a>
@@ -320,14 +319,13 @@ function main() {
 <span class="Keyword">proc</span> <span class="Identifier">get</span><span class="Punctuation">(</span><span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">BitStream</span><span class="Punctuation">,</span> <span class="Identifier">x</span><span class="Punctuation">:</span> <span class="Identifier">int</span><span class="Punctuation">,</span> <span class="Identifier">y</span><span class="Punctuation">:</span> <span class="Identifier">float</span><span class="Punctuation">)</span><span class="Punctuation">:</span> <span class="Identifier">Parser</span>
 <span class="Keyword">proc</span> <span class="Identifier">put</span><span class="Punctuation">(</span><span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">BitStream</span><span class="Punctuation">,</span> <span class="Identifier">input</span><span class="Punctuation">:</span> <span class="Identifier">Parser</span><span class="Punctuation">,</span> <span class="Identifier">x</span><span class="Punctuation">:</span> <span class="Identifier">int</span><span class="Punctuation">,</span> <span class="Identifier">y</span><span class="Punctuation">:</span> <span class="Identifier">float</span><span class="Punctuation">)</span>
 <span class="Keyword">let</span> <span class="Identifier">parser</span> <span class="Operator">=</span> <span class="Punctuation">(</span><span class="Identifier">get</span><span class="Punctuation">:</span> <span class="Identifier">get</span><span class="Punctuation">,</span> <span class="Identifier">put</span><span class="Punctuation">:</span> <span class="Identifier">put</span><span class="Punctuation">)</span></pre>
-<h2><a class="toc-backref" id="extensions-operations" href="#extensions-operations">Operations</a></h2><p>Operations can be applied to fields with the following syntax:</p>
-<pre class="listing">type {op: expr}: name</pre><p>Operations act on data after the parsing and before the encoding respectively. The big restriction here is that an operation cannot alter the type, since the parsing/encoding type is always fixed.</p>
+<h2><a class="toc-backref" id="extensions-operations-experimental" href="#extensions-operations-experimental">Operations <strong>(experimental)</strong></a></h2><p>Operations can be applied to fields with the following syntax:</p>
+<pre class="listing">type {op(arg)}: name</pre><p>Operations act on data after the parsing and before the encoding respectively.</p>
 <p>An operation is nothing more than a pair of templates which follow a specific pattern:</p>
 <ul class="simple"><li>The names of the templates <strong>must</strong> follow the pattern: <tt class="docutils literal"><span class="pre">&lt;operation&gt;get</span></tt> and <tt class="docutils literal"><span class="pre">&lt;operation&gt;put</span></tt></li>
-<li><dl class="docutils"><dt>They must have exactly 3 untyped parameters (you can name them as you wish):</dt>
+<li><dl class="docutils"><dt>They must have at least 2 untyped parameters (you can name them as you wish):</dt>
 <dd><ul class="simple"><li><strong>parameter #1</strong>: the field you operate on</li>
 <li><strong>parameter #2</strong>: parsing/encoding statements</li>
-<li><strong>parameter #3</strong>: expression provided</li>
 </ul>
 </dd>
 </dl>
@@ -341,10 +339,10 @@ function main() {
   <span class="Identifier">encode</span>
 <span class="Identifier">struct</span><span class="Punctuation">(</span><span class="Identifier">myParser</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
   <span class="DecNumber">64</span><span class="Punctuation">:</span> <span class="Identifier">x</span>
-  <span class="DecNumber">16</span> <span class="Punctuation">{</span><span class="Identifier">increase</span><span class="Punctuation">:</span> <span class="Identifier">x</span><span class="Punctuation">}</span><span class="Punctuation">:</span> <span class="Identifier">y</span></pre><p>Note that in <tt class="docutils literal"><span class="pre">increaseGet</span></tt> we parse <em>before</em> operating on <tt class="docutils literal"><span class="pre">field</span></tt>, while in <tt class="docutils literal"><span class="pre">increasePut</span></tt> we encode <em>after</em> operating on <tt class="docutils literal"><span class="pre">field</span></tt>.</p>
+  <span class="DecNumber">16</span> <span class="Punctuation">{</span><span class="Identifier">increase</span><span class="Punctuation">(</span><span class="Identifier">x</span><span class="Punctuation">)</span><span class="Punctuation">}</span><span class="Punctuation">:</span> <span class="Identifier">y</span></pre><p>Note that in <tt class="docutils literal"><span class="pre">increaseGet</span></tt> we parse <em>before</em> operating on <tt class="docutils literal"><span class="pre">field</span></tt>, while in <tt class="docutils literal"><span class="pre">increasePut</span></tt> we encode <em>after</em> operating on <tt class="docutils literal"><span class="pre">field</span></tt>.</p>
 <p>You can also apply more than one operations on one field, in which case they are chained in the specified order, and there are some special rules:</p>
-<ul class="simple"><li>only the <strong>first</strong> operation has 3 parameters as described above</li>
-<li>the rest <strong>must</strong> not have a parameter for parsing/encoding, since this is only done once</li>
+<ul class="simple"><li>only the <strong>first</strong> operation have a parameter for parsing/encoding</li>
+<li>the rest <strong>must not</strong> have a parameter for parsing/encoding, since this is only done once</li>
 </ul>
 <pre class="listing"><span class="Keyword">template</span> <span class="Identifier">condGet</span><span class="Punctuation">(</span><span class="Identifier">field</span><span class="Punctuation">,</span> <span class="Identifier">parse</span><span class="Punctuation">,</span> <span class="Identifier">cond</span><span class="Punctuation">:</span> <span class="Identifier">untyped</span><span class="Punctuation">)</span> <span class="Operator">=</span>
   <span class="Keyword">if</span> <span class="Identifier">cond</span><span class="Punctuation">:</span>
@@ -359,30 +357,15 @@ function main() {
 <span class="Identifier">struct</span><span class="Punctuation">(</span><span class="Identifier">myParser</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
   <span class="DecNumber">8</span><span class="Punctuation">:</span> <span class="Identifier">shouldParse</span>
   <span class="DecNumber">64</span><span class="Punctuation">:</span> <span class="Identifier">x</span>
-  <span class="DecNumber">16</span> <span class="Punctuation">{</span><span class="Identifier">cond</span><span class="Punctuation">:</span> <span class="Identifier">shouldParse</span><span class="Operator">.</span><span class="Identifier">bool</span><span class="Punctuation">,</span> <span class="Identifier">increase</span><span class="Punctuation">:</span> <span class="Identifier">x</span><span class="Punctuation">}</span><span class="Punctuation">:</span> <span class="Identifier">y</span></pre>
-<h2><a class="toc-backref" id="extensions-properties" href="#extensions-properties">Properties</a></h2><p>Properties follow similar syntax to operations, but the name of the property must be prefixed with <tt class="docutils literal"><span class="pre">@</span></tt>.</p>
-<p>Properties are meant for making the interaction with the parsed data easier.</p>
-<p>There are two big differences compared to operations:</p>
-<ul class="simple"><li>They don't affect parsing/encoding - they only change the way the user interacts with data</li>
-<li>They are built-in features rather than user-defined language extensions</li>
-</ul>
-<p>The following properties are available:</p>
-<ul class="simple"><li>set</li>
-<li>get</li>
-<li>hook</li>
-</ul>
-<p><tt class="docutils literal"><span class="pre">@set</span></tt> and <tt class="docutils literal"><span class="pre">@get</span></tt> allows you to get a different view of your data, hiding the underlying implementation. This is particularly useful when the type used to parse the data differs from the one you want to use to interact with them in Nim.</p>
-<p><tt class="docutils literal"><span class="pre">@hook</span></tt> allows you to run more code each time your field is mutated.</p>
-<p>Using any of the properties: <tt class="docutils literal"><span class="pre">@set</span></tt>, <tt class="docutils literal"><span class="pre">@get</span></tt>, <tt class="docutils literal"><span class="pre">@hook</span></tt> forces  the actual name of the field to be generated with <tt class="docutils literal"><span class="pre">genSym</span></tt>, thus hiding it from the user. The specified name is then used for generating a pair of <em>getter</em>/<em>setter</em> procs. This way the extra code run on access/mutation is transparent to the user.</p>
-<ul class="simple"><li>in <tt class="docutils literal"><span class="pre">@get</span></tt>: <tt class="docutils literal"><span class="pre">_</span></tt> refers to the field</li>
-<li>in <tt class="docutils literal"><span class="pre">@set</span></tt> and in <tt class="docutils literal"><span class="pre">@hook</span></tt>: <tt class="docutils literal"><span class="pre">_</span></tt> refers to the value being assigned to the field</li>
-</ul>
-<pre class="listing"><span class="Identifier">struct</span><span class="Punctuation">(</span><span class="Identifier">parser</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
-  <span class="Identifier">s</span> <span class="Punctuation">{</span><span class="Operator">@</span><span class="Identifier">get</span><span class="Punctuation">:</span> <span class="Identifier">_</span><span class="Operator">.</span><span class="Identifier">parseInt</span><span class="Punctuation">,</span> <span class="Operator">@</span><span class="Identifier">set</span><span class="Punctuation">:</span> <span class="Operator">$</span><span class="Identifier">_</span><span class="Punctuation">}</span><span class="Punctuation">:</span> <span class="Identifier">myInt</span>
-
-<span class="Keyword">var</span> <span class="Identifier">x</span><span class="Punctuation">:</span> <span class="Identifier">Parser</span>
-<span class="Identifier">echo</span> <span class="Identifier">x</span><span class="Operator">.</span><span class="Identifier">myInt</span> <span class="Operator">+</span> <span class="DecNumber">42</span>
-<span class="Identifier">x</span><span class="Operator">.</span><span class="Identifier">myInt</span> <span class="Operator">=</span> <span class="DecNumber">24</span></pre>
+  <span class="DecNumber">16</span> <span class="Punctuation">{</span><span class="Identifier">cond</span><span class="Punctuation">(</span><span class="Identifier">shouldParse</span><span class="Operator">.</span><span class="Identifier">bool</span><span class="Punctuation">)</span><span class="Punctuation">,</span> <span class="Identifier">increase</span><span class="Punctuation">(</span><span class="Identifier">x</span><span class="Punctuation">)</span><span class="Punctuation">}</span><span class="Punctuation">:</span> <span class="Identifier">y</span></pre><p>If the operation you apply alters the type of the field, then you must provide the new type in square brackets:</p>
+<pre class="listing"><span class="Keyword">template</span> <span class="Identifier">asciiNumGet</span><span class="Punctuation">(</span><span class="Identifier">field</span><span class="Punctuation">,</span> <span class="Identifier">parse</span><span class="Punctuation">:</span> <span class="Identifier">untyped</span><span class="Punctuation">)</span> <span class="Operator">=</span>
+  <span class="Identifier">parse</span>
+  <span class="Identifier">char</span><span class="Punctuation">(</span><span class="Identifier">field</span> <span class="Operator">-</span> <span class="CharLit">'0'</span><span class="Punctuation">)</span>
+<span class="Keyword">template</span> <span class="Identifier">asciiNumPut</span><span class="Punctuation">(</span><span class="Identifier">field</span><span class="Punctuation">,</span> <span class="Identifier">encode</span><span class="Punctuation">:</span> <span class="Identifier">untyped</span><span class="Punctuation">)</span> <span class="Operator">=</span>
+  <span class="Identifier">int8</span><span class="Punctuation">(</span><span class="Identifier">field</span> <span class="Operator">+</span> <span class="CharLit">'0'</span><span class="Punctuation">)</span>
+  <span class="Identifier">encode</span>
+<span class="Identifier">struct</span><span class="Punctuation">(</span><span class="Identifier">myParser</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
+  <span class="DecNumber">8</span> <span class="Punctuation">{</span><span class="Identifier">asciiNum</span><span class="Punctuation">[</span><span class="Identifier">char</span><span class="Punctuation">]</span><span class="Punctuation">}</span><span class="Punctuation">:</span> <span class="Identifier">x</span></pre>
 <h1><a class="toc-backref" id="special-notes" href="#special-notes">Special notes</a></h1><ul class="simple"><li><dl class="docutils"><dt>Nim expressions may contain:</dt>
 <dd><ul class="simple"><li>a previously defined field</li>
 <li>a parser parameter</li>
@@ -510,7 +493,7 @@ Input:<ul class="simple"><li><tt class="docutils literal"><span class="pre">name
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2021-04-03 11:15:45 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2021-04-03 22:29:42 UTC</small>
       </div>
     </div>
   </div>
