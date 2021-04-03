@@ -305,10 +305,9 @@
 ## `increasePut` we encode *after* operating on `field`.
 ##
 ## You can also apply more than one operations on one field, in which case they
-## are chained in the specified order, and there are some special rules:
-## - only the **first** operation have a parameter for parsing/encoding
-## - the rest **must not** have a parameter for parsing/encoding, since this is
-##   only done once
+## are chained in the specified order, and only the first plugin really does
+## any parsing/encoding. The rest just operate on the value produced by the
+## operation directly before them.
 ##
 ## .. code:: nim
 ##    template condGet(field, parse, cond: untyped) =
@@ -317,10 +316,12 @@
 ##    template condPut(field, encode, cond: untyped) =
 ##      if cond:
 ##        encode
-##    template increaseGet(field, num: untyped) =
+##    template increaseGet(field, pull, num: untyped) =
+##      pull
 ##      field += num
-##    template increasePut(field, num: untyped) =
+##    template increasePut(field, push, num: untyped) =
 ##      field -= num
+##      push
 ##    struct(myParser):
 ##      8: shouldParse
 ##      64: x
