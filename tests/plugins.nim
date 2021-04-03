@@ -4,7 +4,7 @@ discard """
 
 import ../binarylang, ../binarylang/plugins
 
-createParser(parser):
+struct(parser):
   16: x
   l32 {add: x, valid: (_ * (x - 0x1232)) == 0x2468_D158'i32}: y
   f32 {cond: x != 0x1234}: no

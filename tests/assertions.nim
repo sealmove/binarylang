@@ -4,9 +4,9 @@ discard """
 
 import ../binarylang
 
-createParser(inner):
+struct(inner):
   8: bytes[4]
-createParser(parser):
+struct(parser):
   s: str = "ABC"
   8: x = 1
   8: y = 2

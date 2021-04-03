@@ -4,7 +4,7 @@ discard """
 
 import ../binarylang
 
-createParser(parser):
+struct(parser):
   s: a
   s: b(2)
   s: c = "E"

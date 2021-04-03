@@ -1,8 +1,8 @@
 ## BinaryLang is a DSL for creating binary parsers/encoders.
 ##
 ## It exports two macros:
-## - `createParser` which is used to produce a *product parser*
-## - `createVariantParser` which is used to produce a *sum parser*
+## - `struct` which is used to produce a *product parser*
+## - `union` which is used to produce a *sum parser*
 ##
 ## Both of these macros generate a type declaration and a
 ## `tuple[get: proc, put: proc]`:
@@ -43,18 +43,19 @@
 ##
 ## - 1 optional letter specifying the kind:
 ##    - *default*: signed integer
-##    - `u`: **unsigned** integer
-##    - `f`: **float**
-##    - `s`: **string**
-##    - `*`: complex (see below)
+##    - `u`: unsigned integer
+##    - `f`: float
+##    - `s`: string
+##    - `*`: product
+##    - `+`: sum
 ## - 1 optional letter specifying byte endianness:
 ##    - *default*: big endian
-##    - `b`: **big** endian
-##    - `l`: **little** endian
+##    - `b`: big endian
+##    - `l`: little endian
 ## - 1 optional letter specifying bit endianness:
 ##    - *default*: left -> right
-##    - `n`: left -> right (**normal**)
-##    - `r`: left <- right (**reverse**)
+##    - `n`: left -> right (normal)
+##    - `r`: left <- right (reverse)
 ## - 1 number specifying size in **bits**:
 ##    - for a string it refers to the size of each individual character and
 ##      defaults to `8`
@@ -74,7 +75,7 @@
 ## - Spec must finish on a byte boundary
 ##
 ## .. code:: nim
-##    createParser(parser, bitEndian = n):
+##    struct(parser, bitEndian = n):
 ##      b9: a # error: cannot apply byte endianness
 ##      r6: b # error: shares bits with previous byte
 ##      10: c # error: spec does not finish on a byte boundary
@@ -82,7 +83,7 @@
 ## Moreover, unaligned reads for strings are not supported:
 ##
 ## .. code:: nim
-##    createParser(parser):
+##    struct(parser):
 ##      6: x
 ##      s: y # invalid, generates an exception
 ##
@@ -109,15 +110,15 @@
 ## Example:
 ##
 ## .. code:: nim
-##    createParser(inner):
+##    struct(inner):
 ##      32: a
 ##      32: b
 ##
-##    createParser(innerWithArgs, size: int32):
+##    struct(innerWithArgs, size: int32):
 ##      32: a
 ##      32: b[size]
 ##
-##    createParser(outer):
+##    struct(outer):
 ##      *inner: x
 ##      *innerWithArgs(x.a): y
 ##
@@ -148,9 +149,9 @@
 ## repetition itself; for instance you can use them to parameterize a parser:
 ##
 ## .. code:: nim
-##    createParser(inner, size: int):
+##    struct(inner, size: int):
 ##      8: x[size]
-##    createParser(outer):
+##    struct(outer):
 ##      32: amount
 ##      32: sizes[amount]
 ##      *inner(sizes[i]): complex[amount]
@@ -166,9 +167,9 @@
 ## Call syntax forces the creation of a substream:
 ##
 ## .. code:: nim
-##    createParser(aux, size: int):
+##    struct(aux, size: int):
 ##      8: x[size]
-##    createParser(parser):
+##    struct(parser):
 ##      8: x = 4
 ##      8: limit = 8
 ##      *aux(x): fixed(limit)
@@ -187,7 +188,7 @@
 ## above:
 ##
 ## .. code:: nim
-##    createParser(parser):
+##    struct(parser):
 ##      u8: a[4](6) # does substream refer to each individual element or the
 ##                  # whole sequence?
 ##
@@ -267,7 +268,7 @@
 ##    template increasePut(field, encode, num: untyped) =
 ##      field -= num
 ##      encode
-##    createParser(myParser):
+##    struct(myParser):
 ##      64: x
 ##      16 {increase: x}: y
 ##
@@ -291,7 +292,7 @@
 ##      field += num
 ##    template increasePut(field, num: untyped) =
 ##      field -= num
-##    createParser(myParser):
+##    struct(myParser):
 ##      8: shouldParse
 ##      64: x
 ##      16 {cond: shouldParse.bool, increase: x}: y
@@ -331,7 +332,7 @@
 ##   to the field
 ##
 ## .. code:: nim
-##    createParser(parser):
+##    struct(parser):
 ##      s {@get: _.parseInt, @set: $_}: myInt
 ##
 ##    var x: Parser
@@ -364,10 +365,10 @@ type
     osEndian
     osBitEndian
   Kind = enum
-    kInt, kUInt, kFloat, kStr, kCustom
+    kInt, kUInt, kFloat, kStr, kProduct, kSum
   Type = ref object
     case kind: Kind
-    of kCustom:
+    of kProduct, kSum:
       symbol: NimNode
       args: seq[NimNode]
     else:
@@ -436,7 +437,7 @@ proc getImpl(typ: Type): NimNode {.compileTime.} =
     result = ident("float" & $typ.size)
   of kStr:
     result = ident"string"
-  of kCustom:
+  of kProduct, kSum:
     let sym = ident(typ.symbol.strVal.capitalizeAscii)
     result = quote do: `sym`
 
@@ -468,12 +469,20 @@ proc getCustomReader(typ: Type; bs: NimNode; st, params: seq[string]):
     result.add(arg.copyNimTree)
   result.prefixFields(st, params, ident"result")
 
-proc getCustomWriter(typ: Type; bs: NimNode; st, params: seq[string]):
+proc getCustomWriter(typ: Type; sym, bs: NimNode; st, params: seq[string]):
  NimNode {.compileTime.} =
   result = newCall(nnkDotExpr.newTree(typ.symbol, ident"put"), bs)
-  for arg in typ.args:
-    result.add(arg.copyNimTree)
-  result.prefixFields(st, params, ident"input")
+  case typ.kind
+  of kProduct:
+    for arg in typ.args:
+      result.add(arg.copyNimTree)
+    result.prefixFields(st, params, ident"input")
+  of kSum:
+    result.add(quote do: `sym`.disc)
+    for i in 1 ..< typ.args.len:
+      result.add(typ.args[i].copyNimTree)
+    result.prefixFields(st, params, ident"input")
+  else: discard
 
 proc replaceWith(node: var NimNode; what, with: NimNode) {.compileTime.} =
   if node.kind == nnkIdent:
@@ -487,7 +496,8 @@ proc replaceWith(node: var NimNode; what, with: NimNode) {.compileTime.} =
       node[i] = n
       inc i
 
-proc decodeType(t: NimNode, opts: Options): Type {.compileTime.} =
+proc decodeType(t: NimNode, opts: Options, prefix: string): Type
+ {.compileTime.} =
   var t = t
   result = Type()
   var
@@ -551,7 +561,10 @@ proc decodeType(t: NimNode, opts: Options): Type {.compileTime.} =
     if letters * {'l', 'b'} != {} and (size == 8 or size mod 8 != 0):
       raise newException(Defect, "l/b is only valid for multiple-of-8 sizes")
   of nnkCall:
-    result.kind = kCustom
+    case prefix
+    of "*": result.kind = kProduct
+    of "+": result.kind = kSum
+    else: syntaxError("Invalid prefix symbol for type. Valid are: '*', '+'")
     if t[0].kind == nnkCall:
       t = t[0]
     result.symbol = t[0]
@@ -645,9 +658,12 @@ proc isInterfaced(f: Field): bool {.compileTime.} =
 
 proc decodeField(def: NimNode, st: var seq[string], opts: Options):
  Field {.compileTime.} =
-  var a, b, c: NimNode
+  var
+    a, b, c: NimNode
+    prefix: string
   case def.kind
   of nnkPrefix:
+    prefix = def[0].strVal
     c = def[2][0].copyNimTree
     case def[1].kind
     of nnkIdent:
@@ -672,7 +688,7 @@ proc decodeField(def: NimNode, st: var seq[string], opts: Options):
     c = def[2][0].copyNimTree
   else: syntaxError("Invalid field syntax")
   result = Field(
-    typ: decodeType(a, opts),
+    typ: decodeType(a, opts, prefix),
     trans: decodeTransformations(b),
     val: decodeValue(c, st))
   result.symbol =
@@ -736,7 +752,7 @@ proc createReadStatement(sym, bs: NimNode; f: Field; st, params: seq[string]):
       else:
         quote do:
           `sym` = readStr(`bs`))
-  of kCustom:
+  of kProduct, kSum:
     let call = getCustomReader(f.typ, bs, st, params)
     result.add(quote do: `sym` = `call`)
 
@@ -778,8 +794,8 @@ proc createWriteStatement(f: Field, sym, bs: NimNode; st, params: seq[string]):
     if f.val.valueExpr == nil and (f.magic == nil or f.val.isMagic):
       result.add(quote do:
         writeBe(`bs`, 0'u8))
-  of kCustom:
-    let call = getCustomWriter(f.typ, bs, st, params)
+  of kProduct, kSum:
+    let call = getCustomWriter(f.typ, sym, bs, st, params)
     call.insert(2, sym)
     result.add(quote do: `call`)
 
@@ -1153,7 +1169,7 @@ proc generateConverters(tname, pname: NimNode; params: seq[NimNode];
         (quote do: s.seek(0)),
         (quote do: s.readAll))))
 
-macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
+macro struct*(name: untyped, rest: varargs[untyped]): untyped =
   ## Input:
   ## - `name`: the name of the parser tuple to create (must be lowercase)
   ## - `rest`: **optionally** parser options and parameters
@@ -1287,6 +1303,10 @@ macro createParser*(name: untyped, rest: varargs[untyped]): untyped =
   when defined(BinaryLangEcho):
     echo repr result
 
+macro createParser*(name: untyped, rest: varargs[untyped]): untyped
+ {.deprecated: "renamed to 'struct'".} =
+  quote do: struct(`name`, `rest`)
+
 proc decodeVariation(def: NimNode, st: seq[string], opts: Options):
  Variation {.compileTime.} =
   def.expectKind(nnkCall)
@@ -1313,7 +1333,8 @@ proc decodeVariation(def: NimNode, st: seq[string], opts: Options):
     result.fields = fields
     result.st = symbolTable
 
-macro createVariantParser*(name, disc: untyped; rest: varargs[untyped]): untyped =
+macro union*(name, disc: untyped; rest: varargs[untyped]):
+ untyped =
   ## Input:
   ## - `name`: the name of the parser tuple to create (must be lowercase)
   ## - `disc`: the definition of the discriminator field (`name: type`)
@@ -1333,7 +1354,7 @@ macro createVariantParser*(name, disc: untyped; rest: varargs[untyped]): untyped
   ##   proc get(s: BitStream): `tname`
   ##   proc put(s: BitStream, input: `tname`)
   ##
-  ## The body is similar to that of `createParser` macro, but the fields are
+  ## The body is similar to that of `struct` macro, but the fields are
   ## partitioned in branches. Each branch starts with one or more possible
   ## value of the discriminator in parenthesis, seperated by comma.
   ##
@@ -1345,7 +1366,7 @@ macro createVariantParser*(name, disc: untyped; rest: varargs[untyped]): untyped
   ## Example:
   ##
   ## .. code-block:: nim
-  ##   createVariantParser(fooBar, disc: int):
+  ##   union(fooBar, int):
   ##     (0): *foo: a
   ##     (1, 3): u32: *b
   ##     (2): nil
@@ -1356,7 +1377,7 @@ macro createVariantParser*(name, disc: untyped; rest: varargs[untyped]): untyped
   result = newStmtList()
 
   name.expectKind({nnkIdent, nnkPrefix})
-  disc.expectKind(nnkExprColonExpr)
+  disc.expectKind({nnkIdent, nnkPrefix})
   var
     pname: NimNode
     pdef: NimNode
@@ -1385,20 +1406,22 @@ macro createVariantParser*(name, disc: untyped; rest: varargs[untyped]): untyped
   let
     input = ident"input"
     bs = ident"s"
-    discType = disc[1]
     (extraParams, parserOptions) = decodeHeader(rest[0 .. ^2])
+    discName = ident"disc"
   var
-    discName: NimNode
+    discType: NimNode
     objectMeat = newTree(nnkRecCase)
-  case disc[0].kind
+  case disc.kind
   of nnkIdent:
-    discName = disc[0]
+    discType = disc.copyNimTree
     objectMeat.add(
       newIdentDefs(
         discName,
         discType))
   of nnkPrefix:
-    discName = disc[0][1]
+    if not eqIdent(disc[0], "*"):
+      syntaxError("Invalid prefix for discriminator. Only '*' is allowed.")
+    discType = disc[1].copyNimTree
     objectMeat.add(
       newIdentDefs(
         postfix(
@@ -1541,3 +1564,7 @@ macro createVariantParser*(name, disc: untyped; rest: varargs[untyped]): untyped
     `procFrom`)
   when defined(BinaryLangEcho):
     echo repr result
+
+macro createVariantParser*(name, disc: untyped; rest: varargs[untyped]):
+ untyped {.deprecated: "renamed to 'union'".} =
+  quote do: union(`name`, `disc`, `rest`)

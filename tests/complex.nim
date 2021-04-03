@@ -4,12 +4,12 @@ discard """
 
 import ../binarylang
 
-createParser(inner):
+struct(inner):
   8: x
-createParser(innerWithArgs, a: int8, b: Inner):
+struct(innerWithArgs, a: int8, b: Inner):
   8: x = a
   8: y = b.x
-createParser(parser):
+struct(parser):
   8: x
   *inner: y
   *innerWithArgs(x, y): z

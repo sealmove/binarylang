@@ -4,7 +4,7 @@ discard """
 
 import ../binarylang
 
-createParser(parser):
+struct(parser):
   16: beword
   l32: ledword
   f32: befloat

@@ -4,9 +4,9 @@ discard """
 
 import ../binarylang
 
-createParser(inner, size: int):
+struct(inner, size: int):
   8: x[size]
-createParser(parser):
+struct(parser):
   *inner(i+1): complex[3]
   8: size
   4: nibbles[size]

@@ -40,3 +40,18 @@ v0.3.3 (2 April 2021)
 -------------------------------------------------------------------------------
 - Bugfix: Magic now works properly in ``createVariantParser``
 - Converters are now also exported when exporting the corresponding parser
+
+v0.4.0 (3 April 2021)
+-------------------------------------------------------------------------------
+- API change: ``createParser``/``createVariantParser`` were renamed to
+  ``struct``/``union`` respectively
+- API change: *complex* type is now divided into *product* and *sum* type for
+  parsers created with the ``struct``/``union`` macro respectively. Sum parsers
+  differ from product parsers in that the first argument is mandatory and is
+  treated differently since it refers to the *discriminator*. Specifically, the
+  passed argument is calculated only during parsing, whereas during
+  serialization the value stored in the ``disc`` field is used.
+- API change: The discriminator field of sum parsers is always called ``disc``
+  implicitly. The second argument of the ``union`` macro must be a single
+  identifier denoting the type of the discriminator -as opposed to an
+  expression-colon-expression-.

@@ -4,7 +4,7 @@ discard """
 
 import ../binarylang
 
-createParser(parser, endian = l, bitEndian = r):
+struct(parser, endian = l, bitEndian = r):
   16: little
   b16: big
   4: first

@@ -3,7 +3,7 @@ Examples
 
 .. code:: nim
    let x = 5
-   createParser(pascalString):
+   struct(pascalString):
      u8: len
      s {@hook: (len = _.len)}: str(len)
 

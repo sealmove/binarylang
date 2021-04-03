@@ -4,7 +4,7 @@ discard """
 
 import ../binarylang
 
-createParser(parser):
+struct(parser):
   16: _ = 0x1234
   l32: _
   f32: _

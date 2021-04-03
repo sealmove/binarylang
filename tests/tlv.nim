@@ -4,17 +4,17 @@ discard """
 
 import ../binarylang
 
-createVariantParser(tlv, *code: byte):
+union(tlv, *byte):
   (0x12): u16: a
   (0x34, 0x56):
     u32: *b
     u16: c
   _: nil
-createParser(parser):
+struct(parser):
   u8: code1
   u8: code2
-  *tlv(code1): variant1
-  *tlv(code2): variant2
+  +tlv(code1): variant1
+  +tlv(code2): variant2
 
 block:
   var fbs = newFileBitStream("data/aligned.hex")

@@ -4,9 +4,9 @@ discard """
 
 import ../binarylang
 
-createParser(aux):
+struct(aux):
   8: x
-createParser(parser):
+struct(parser):
   *aux: x(3)
   8: y
 
