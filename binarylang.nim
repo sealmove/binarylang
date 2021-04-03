@@ -36,7 +36,7 @@
 ## For the name you use `_` to discard the field, or prepend it with `*` to
 ## export it.
 ##
-## Type
+## Types
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ## The **kind**, **endianness** and **size** are encoded in a identifier
 ## made up of:
@@ -100,12 +100,12 @@
 ## field if it's a **string** or a **sequence indicated as magic-terminated**.
 ## This is discussed in later sections.
 ##
-## Complex types
+## Product type
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-## Instead of the described identifier for specifying type, you can call a
-## previously defined parser by using `*` followed by the name of the parser.
-## If your parser is parametric you must pass arguments to it with standard
-## call syntax.
+## A parser is of type *product* if it is created with the ``struct`` macro or
+## *by hand*, as explained in a later section. To call a product parser you
+## must use `*` followed by the name of the parser. If your parser requires
+## arguments, you must them using standard call syntax.
 ##
 ## Example:
 ##
@@ -121,6 +121,31 @@
 ##    struct(outer):
 ##      *inner: x
 ##      *innerWithArgs(x.a): y
+##
+## Sum type
+## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## A parser is of type *sum* if it is created with the ``union`` macro or
+## *by hand*, as explained in a later section. A sum parser has a special
+## field called the *discriminator* which determines which branch will be
+## activated at run-time -similarly to *object variants*-.
+##
+## To call a sum parser you must use `+` followed by a call-syntaxed expression.
+## The callee is the name of the parser and the first argument is the value of
+## the *discriminator* field. If the parser requires additional arguments, they
+## also have to be provided. The first argument is treated in a special manner.
+## Unlike other arguments, this one is only evaluated during parsing, whereas
+## during serialization the value stored in the ``disc`` field is used.
+##
+## Example:
+##
+## .. code:: nim
+##    union(inner, byte):
+##      (0): 8: a
+##      (1): 16: b
+##      _: nil
+##
+##    struct(outer):
+##      +inner(0): x
 ##
 ## Repetition
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -154,7 +179,7 @@
 ##    struct(outer):
 ##      32: amount
 ##      32: sizes[amount]
-##      *inner(sizes[i]): complex[amount]
+##      *inner(sizes[i]): aux[amount]
 ##
 ## With the above trick you can get a sequence of variable-length sequences.
 ##
@@ -184,8 +209,7 @@
 ##
 ## This feature is **not implemented for repetition** because it would increase
 ## complexity with little benefits. The following syntax is **invalid** and
-## instead you should use the technique with the auxiliary complex type shown
-## above:
+## instead you should use the technique with the auxiliary parser shown above:
 ##
 ## .. code:: nim
 ##    struct(parser):
