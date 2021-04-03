@@ -1,6 +1,6 @@
-## BinaryLang is a DSL for creating binary parsers/encoders.
-##
-## It exports two macros:
+## DSL invocation
+## ----------------------------------------------------------------------------
+## Two macros are exported:
 ## - `struct` which is used to produce a *product parser*
 ## - `union` which is used to produce a *sum parser*
 ##
@@ -8,9 +8,16 @@
 ## `tuple[get: proc, put: proc]`:
 ## - `get` returns an object with each parsed field
 ## - `put` writes an object to a stream
+## Each statement corresponds to 1 field. The general syntax is:
+##
+## .. code::
+##    type {plugin: expr, ...}: name (...)
+##
+## For the name you use `_` to discard the field, or prepend it with `*` to
+## export it.
 ##
 ## Parser options
-## ----------------------------------------------------------------------------
+## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ## Each specified option must be in the form `option = value`:
 ## - `endian`: sets the default byte endianness for the whole parser
 ##    - *default*: big endian
@@ -22,21 +29,18 @@
 ##    - `r`: left <- right (**reverse**)
 ##
 ## Parser parameters
-## ----------------------------------------------------------------------------
+## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ## Each parameter must be in the form `symbol: type`. The generated `get`/`put`
 ## procs will then have this additional parameter appended.
 ##
-## DSL
-## ----------------------------------------------------------------------------
-## Each statement corresponds to 1 field. The general syntax is:
-##
-## .. code::
-##    type {plugin: expr, ...}: name (...)
-##
-## For the name you use `_` to discard the field, or prepend it with `*` to
-## export it.
+## The only exception is the discriminator field for **sum** parsers which is
+## always named ``disc`` implicitly; and therefore, only the type must be
+## provided -instead of an expression-colon-expression-.
 ##
 ## Types
+## ----------------------------------------------------------------------------
+##
+## Primitive types
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ## The **kind**, **endianness** and **size** are encoded in a identifier
 ## made up of:
@@ -46,8 +50,6 @@
 ##    - `u`: unsigned integer
 ##    - `f`: float
 ##    - `s`: string
-##    - `*`: product
-##    - `+`: sum
 ## - 1 optional letter specifying byte endianness:
 ##    - *default*: big endian
 ##    - `b`: big endian
@@ -61,10 +63,63 @@
 ##      defaults to `8`
 ##    - for an integer the allowed values are `1 .. 64`
 ##    - for a float the allowed values are `32` and `64`
-##    - for a custom it can't be used (but you can use a substream, see below)
 ##
 ## You can order options however you want, but size must come last (e.g.
 ## `lru16` and `url16` are valid but not `16lru`).
+##
+## Assertion can also be used in a special manner to terminate the previous
+## field if it's a **string** or a **sequence indicated as magic-terminated**.
+## This is discussed in later sections.
+##
+## Product type
+## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## A parser is of type **product** if it is created with the ``struct`` macro
+## or *by hand*, as explained in a later section. To call a product parser you
+## must use `*` followed by the name of the parser. If your parser requires
+## arguments, you must them using standard call syntax.
+##
+## Example:
+##
+## .. code:: nim
+##    struct(inner):
+##      32: a
+##      32: b
+##
+##    struct(innerWithArgs, size: int32):
+##      32: a
+##      32: b[size]
+##
+##    struct(outer):
+##      *inner: x
+##      *innerWithArgs(x.a): y
+##
+## Sum type
+## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## A parser is of type **sum** if it is created with the ``union`` macro or
+## *by hand*, as explained in a later section. A sum parser has a special
+## field called the *discriminator* which determines which branch will be
+## activated at run-time -similarly to *object variants*-.
+##
+## To call a sum parser you must use `+` followed by a call-syntaxed expression.
+## The callee is the name of the parser and the first argument is the value of
+## the *discriminator* field. If the parser requires additional arguments, they
+## also have to be provided. The first argument is treated in a special manner.
+## Unlike other arguments, this one is only evaluated during parsing, whereas
+## during serialization the value stored in the ``disc`` field is used.
+##
+## Example:
+##
+## .. code:: nim
+##    union(inner, byte):
+##      (0): 8: a
+##      (1): 16: b
+##      _: nil
+##
+##    struct(outer):
+##      +inner(0): x
+##
+## Features
+## ----------------------------------------------------------------------------
 ##
 ## Alignment
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -95,57 +150,6 @@
 ## .. code:: nim
 ##    s: x = "BinaryLang is awesome"
 ##    8: y[5] = @[0, 1, 2, 3, 4]
-##
-## Assertion can also be used in a special manner to terminate the previous
-## field if it's a **string** or a **sequence indicated as magic-terminated**.
-## This is discussed in later sections.
-##
-## Product type
-## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-## A parser is of type *product* if it is created with the ``struct`` macro or
-## *by hand*, as explained in a later section. To call a product parser you
-## must use `*` followed by the name of the parser. If your parser requires
-## arguments, you must them using standard call syntax.
-##
-## Example:
-##
-## .. code:: nim
-##    struct(inner):
-##      32: a
-##      32: b
-##
-##    struct(innerWithArgs, size: int32):
-##      32: a
-##      32: b[size]
-##
-##    struct(outer):
-##      *inner: x
-##      *innerWithArgs(x.a): y
-##
-## Sum type
-## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-## A parser is of type *sum* if it is created with the ``union`` macro or
-## *by hand*, as explained in a later section. A sum parser has a special
-## field called the *discriminator* which determines which branch will be
-## activated at run-time -similarly to *object variants*-.
-##
-## To call a sum parser you must use `+` followed by a call-syntaxed expression.
-## The callee is the name of the parser and the first argument is the value of
-## the *discriminator* field. If the parser requires additional arguments, they
-## also have to be provided. The first argument is treated in a special manner.
-## Unlike other arguments, this one is only evaluated during parsing, whereas
-## during serialization the value stored in the ``disc`` field is used.
-##
-## Example:
-##
-## .. code:: nim
-##    union(inner, byte):
-##      (0): 8: a
-##      (1): 16: b
-##      _: nil
-##
-##    struct(outer):
-##      +inner(0): x
 ##
 ## Repetition
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -241,6 +245,9 @@
 ## - Strings are null/eos-terminated unless assertion is used on the same field
 ##   **or** on the next field
 ## - When using repetition, each string element is null-terminated
+##
+## Extensions
+## ----------------------------------------------------------------------------
 ##
 ## Custom parser API
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -364,7 +371,7 @@
 ##    x.myInt = 24
 ##
 ## Special notes
-## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## ----------------------------------------------------------------------------
 ## - Nim expressions may contain:
 ##    - a previously defined field
 ##    - a parser parameter
