@@ -94,13 +94,18 @@ function main() {
 <li>Converters are now also exported when exporting the corresponding parser</li>
 </ul>
 
+<h1 id="v0dot4dot0-3-april-2021">v0.4.0 (3 April 2021)</h1><ul class="simple"><li>API change: <tt class="docutils literal"><span class="pre">createParser</span></tt>/<tt class="docutils literal"><span class="pre">createVariantParser</span></tt> were renamed to <tt class="docutils literal"><span class="pre">struct</span></tt>/<tt class="docutils literal"><span class="pre">union</span></tt> respectively</li>
+<li>API change: <em>complex</em> type is now divided into <em>product</em> and <em>sum</em> type for parsers created with the <tt class="docutils literal"><span class="pre">struct</span></tt>/<tt class="docutils literal"><span class="pre">union</span></tt> macro respectively. Sum parsers differ from product parsers in that the first argument is mandatory and is treated differently since it refers to the <em>discriminator</em>. Specifically, the passed argument is calculated only during parsing, whereas during serialization the value stored in the <tt class="docutils literal"><span class="pre">disc</span></tt> field is used.</li>
+<li>API change: The discriminator field of sum parsers is always called <tt class="docutils literal"><span class="pre">disc</span></tt> implicitly. The second argument of the <tt class="docutils literal"><span class="pre">union</span></tt> macro must be a single identifier denoting the type of the discriminator -as opposed to an expression-colon-expression-.</li>
+</ul>
+
 
 
     <div class="row">
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2021-04-02 02:03:32 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2021-04-03 10:13:35 UTC</small>
       </div>
     </div>
   </div>
