@@ -11,7 +11,7 @@
 ## Each statement corresponds to 1 field. The general syntax is:
 ##
 ## .. code::
-##    type {plugin: expr, ...}: name (...)
+##    type: name (...)
 ##
 ## For the name you use `_` to discard the field, or prepend it with `*` to
 ## export it.
@@ -376,9 +376,7 @@ type
       size: BiggestInt
     endian: Endianness
     bitEndian: Endianness
-  Transformations = ref object
-    ops: seq[tuple[name: string, arg: NimNode]]
-    props: Table[string, NimNode]
+  Operations = seq[tuple[name: string, args: seq[NimNode]]]
   Repeat = enum
     rNo
     rFor
@@ -394,7 +392,7 @@ type
     isExported: bool
   Field = ref object
     typ: Type
-    trans: Transformations
+    ops: Operations
     val: Value
     symbol: NimNode
     magic: Field
@@ -578,13 +576,21 @@ proc decodeType(t: NimNode, opts: Options, prefix: string): Type
   result.endian = endian
   result.bitEndian = bitEndian
 
-proc decodeTransformations(node: NimNode): Transformations {.compileTime.} =
-  result = Transformations()
+proc decodeOps(node: NimNode): Operations {.compileTime.} =
   for child in node:
-    if child[0].kind == nnkIdent:
-      result.ops.add((child[0].strVal, child[1].copyNimTree))
+    var
+      name: string
+      args: seq[NimNode]
+    case child.kind
+    of nnkIdent:
+      name = child.strVal
+    of nnkCall:
+      name = child[0].strVal
+      for i in 1 ..< node.len:
+        args.add(child[i].copyNimTree)
     else:
-      result.props[child[0][1].strVal] = child[1].copyNimTree
+      syntaxError("Invalid syntax for operation")
+    result.add (name, args)
 
 proc decodeValue(node: NimNode, st: var seq[string]): Value {.compileTime.} =
   var node = node
@@ -654,9 +660,6 @@ proc decodeHeader(input: seq[NimNode]):
     else:
       syntaxError("Invalid header syntax")
 
-proc isInterfaced(f: Field): bool {.compileTime.} =
-  f.trans.props.len > 0
-
 proc decodeField(def: NimNode, st: var seq[string], opts: Options):
  Field {.compileTime.} =
   var
@@ -690,11 +693,10 @@ proc decodeField(def: NimNode, st: var seq[string], opts: Options):
   else: syntaxError("Invalid field syntax")
   result = Field(
     typ: decodeType(a, opts, prefix),
-    trans: decodeTransformations(b),
+    ops: decodeOps(b),
     val: decodeValue(c, st))
   result.symbol =
-    if result.isInterfaced: ident(result.val.name & "Impl")
-    else: ident(result.val.name)
+    ident(result.val.name)
 
 proc createReadStatement(sym, bs: NimNode; f: Field; st, params: seq[string]):
  NimNode {.compileTime.} =
@@ -1013,18 +1015,24 @@ proc generateReader(fields: seq[Field]; fst, pst: seq[string]):
       var `rSym`: `impl`)
     var
       read = generateRead(rSym, f, bs, fst, pst)
-    if f.trans.ops.len != 0:
-      for i in 0 .. f.trans.ops.len - 1:
-        let
-          k = f.trans.ops[i].name
-          v = f.trans.ops[i].arg
-        var val = v.copyNimTree
-        val.prefixFields(fst, pst, res)
-        val.replaceWith(ident"_", rSym)
-        if i == 0:
-          result.add(newCall(ident(k & "get"), rSym, read, val))
-        else:
-          result.add(newCall(ident(k & "get"), rSym, val))
+      inputSym, outputSym: NimNode
+    if f.ops.len > 1:
+      inputSym = rSym
+      outputSym = genSym(nskVar)
+      var op = newCall(ident(f.ops[0].name & "get"), read, inputSym, outputSym)
+      for i in 0 ..< f.ops.len:
+        result.add(quote do:
+          var `outputSym`: `impl`)
+        for arg in f.ops[i].args:
+          var argVal = arg.copyNimTree
+          argVal.prefixFields(fst, pst, res)
+          argVal.replaceWith(ident"_", inputSym)
+          op.add(argVal)
+        result.add(op)
+        read = quote do: `outputSym` = `inputSym`
+        inputSym = outputSym
+        outputSym = genSym(nskVar)
+        op = newCall(ident(f.ops[1].name & "get"), read, inputSym, outputSym)
     else:
       result.add(read)
     if field != "":
@@ -1059,72 +1067,42 @@ proc generateWriter(fields: seq[Field]; fst, pst: seq[string]):
       else:
         quote do:
           var `wSym` = `value`)
-    var
-      write = generateWrite(wSym, f, bs, fst, pst)
-    if f.trans.ops.len != 0:
-      for i in countdown(f.trans.ops.len - 1, 0):
-        let
-          k = f.trans.ops[i].name
-          v = f.trans.ops[i].arg
-        var val = v.copyNimTree
-        val.prefixFields(fst, pst, input)
-        val.replaceWith(ident"_", wSym)
-        if i == 0:
-          write = generateWrite(wSym, f, bs, fst, pst)
-          result.add(newCall(ident(k & "put"), wSym, write, val))
-        else:
-          result.add(newCall(ident(k & "put"), wSym, val))
+    if f.ops.len > 1:
+      var
+        toEncode = genSym(nskVar)
+        encoded = genSym(nskVar)
+        inputSym = newDotExpr(input, ident)
+        write = quote do: `encoded` = `toEncode`
+      for i in countdown(f.ops.len - 1, 1):
+        var op = newCall(ident(f.ops[i].name & "put"), write, toEncode, inputSym)
+        result.add(quote do:
+          var `toEncode`,`encoded`: `impl`)
+        for arg in f.ops[i].args:
+          var argVal = arg.copyNimTree
+          argVal.prefixFields(fst, pst, input)
+          argVal.replaceWith(ident"_", inputSym)
+          op.add(argVal)
+        result.add(op)
+        write = quote do: `encoded` = `toEncode`
+        inputSym = toEncode
+        toEncode = genSym(nskVar)
+      result.add(quote do:
+        var `toEncode`: `impl`)
+      var op =
+        newCall(
+          ident(f.ops[0].name & "put"),
+          generateWrite(toEncode, f, bs, fst, pst),
+          toEncode,
+          encoded)
+      for arg in f.ops[0].args:
+        var argVal = arg.copyNimTree
+        argVal.prefixFields(fst, pst, input)
+        argVal.replaceWith(ident"_", inputSym)
+        op.add(argVal)
+      result.add(op)
     else:
-      result.add(write)
-
-proc generateProperties(parserType: NimNode; f: Field;
-                        fst, pst: seq[string]): seq[NimNode] {.compileTime.} =
-  var getProp, setProp: NimNode
-  let
-    ident = f.symbol
-    objGet = genSym(nskParam)
-    targetField = newDotExpr(objGet, ident)
-  var expr: NimNode
-  if f.trans.props.hasKey("get"):
-    expr = f.trans.props["get"].copyNimTree
-    expr.replaceWith(ident"_", targetField)
-    expr.prefixFields(fst, pst, objGet)
-  else:
-    expr = targetField
-  let getSym = ident(f.val.name)
-  getProp = newProc(
-    if f.val.isExported: postfix(getSym, "*") else: getSym,
-    @[ident"auto",
-      newIdentDefs(objGet, parserType)],
-    expr)
-  result.add(getProp)
-  let
-    objPut = genSym(nskParam)
-    val = ident"x"
-  if f.trans.props.hasKey("set"):
-    expr = f.trans.props["set"].copyNimTree
-    expr.replaceWith(ident"_", val)
-    expr.prefixFields(fst, pst, objPut)
-  else:
-    expr = val
-  let setSym = nnkAccQuoted.newTree(
-    ident(f.val.name),
-    ident"=")
-  setProp = newProc(
-    if f.val.isExported: postfix(setSym, "*") else: setSym,
-    @[newEmptyNode(),
-      newIdentDefs(objPut, nnkVarTy.newTree(parserType)),
-      newIdentDefs(val, ident"any")],
-    newStmtList(
-      newAssignment(
-        newDotExpr(objPut, ident),
-        expr)))
-  if f.trans.props.hasKey("hook"):
-    expr = f.trans.props["hook"].copyNimTree
-    expr.replaceWith(ident"_", val)
-    expr.prefixFields(fst, pst, objPut)
-    setProp[6].insert(0, expr)
-  result.add(setProp)
+      result.add(
+        generateWrite(wSym, f, bs, fst, pst))
 
 proc generateConverters(tname, pname: NimNode; params: seq[NimNode];
                         isExported: bool): tuple[to, `from`: NimNode]
@@ -1172,9 +1150,9 @@ proc generateConverters(tname, pname: NimNode; params: seq[NimNode];
 
 macro struct*(name: untyped, rest: varargs[untyped]): untyped =
   ## Input:
-  ## - `name`: the name of the parser tuple to create (must be lowercase)
-  ## - `rest`: **optionally** parser options and parameters
-  ## - `rest` (last): a block of the format described above
+  ## - `name`: Name of the parser tuple to create (must be lowercase)
+  ## - `rest`: **Optional** parser options and parameters
+  ## - `rest` (last): Block of the format described above
   ##
   ## Output:
   ## - Object type declaration with name
@@ -1265,14 +1243,6 @@ macro struct*(name: untyped, rest: varargs[untyped]): untyped =
             newEmptyNode(),
             newEmptyNode(),
             fieldDefs)))))
-  for f in fields:
-    if f.isInterfaced:
-      result.add(
-        generateProperties(
-          tname,
-          f,
-          fieldsSymbolTable,
-          paramsSymbolTable))
   let
     readerName = genSym(nskProc)
     writerName = genSym(nskProc)
@@ -1337,10 +1307,10 @@ proc decodeVariation(def: NimNode, st: seq[string], opts: Options):
 macro union*(name, disc: untyped; rest: varargs[untyped]):
  untyped =
   ## Input:
-  ## - `name`: the name of the parser tuple to create (must be lowercase)
-  ## - `disc`: the definition of the discriminator field (`name: type`)
-  ## - `rest`: **optionally** parser options and parameters
-  ## - `rest` (last): a block of the format described above
+  ## - `name`: The name of the parser tuple to create (must be lowercase)
+  ## - `disc`: The definition of the discriminator field (`name: type`)
+  ## - `rest`: **Optional** parser options and parameters
+  ## - `rest` (last): Block of the format described above
   ##
   ## Output:
   ## - **Variant** object type declaration with discriminator `disc` and name
@@ -1488,16 +1458,6 @@ macro union*(name, disc: untyped; rest: varargs[untyped]):
             newEmptyNode(),
             nnkRecList.newTree(
               objectMeat))))))
-  for v in variations:
-    if not v.isEmpty:
-      for f in v.fields:
-        if f.isInterfaced:
-          result.add(
-            generateProperties(
-              tname,
-              f,
-              v.st,
-              paramsSymbolTable))
   let readerName = genSym(nskProc)
   var getCaseStmt = nnkCaseStmt.newTree(discName)
   let readerProcForwardDecl = quote do:
