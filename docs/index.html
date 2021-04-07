@@ -151,7 +151,7 @@ function main() {
 <li><tt class="docutils literal"><span class="pre">put</span></tt> writes an object to a stream</li>
 </ul>
 <p>Each statement corresponds to 1 field. The general syntax is:</p>
-<pre class="listing">type {plugin: expr, ...}: name (...)</pre><p>For the name you use <tt class="docutils literal"><span class="pre">_</span></tt> to discard the field, or prepend it with <tt class="docutils literal"><span class="pre">*</span></tt> to export it.</p>
+<pre class="listing">type: name (...)</pre><p>For the name you use <tt class="docutils literal"><span class="pre">_</span></tt> to discard the field, or prepend it with <tt class="docutils literal"><span class="pre">*</span></tt> to export it.</p>
 
 <h2><a class="toc-backref" id="dsl-invocation-parser-options" href="#dsl-invocation-parser-options">Parser options</a></h2><p>Each specified option must be in the form <tt class="docutils literal"><span class="pre">option = value</span></tt>:</p>
 <ul class="simple"><li><dl class="docutils"><dt><tt class="docutils literal"><span class="pre">endian</span></tt>: sets the default byte endianness for the whole parser</dt>
@@ -414,9 +414,9 @@ function main() {
 <dt><pre><span class="Keyword">macro</span> <a href="#struct.m%2Cuntyped%2Cvarargs%5Buntyped%5D"><span class="Identifier">struct</span></a><span class="Other">(</span><span class="Identifier">name</span><span class="Other">:</span> <span class="Identifier">untyped</span><span class="Other">;</span> <span class="Identifier">rest</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">untyped</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">untyped</span></pre></dt>
 <dd>
 
-Input:<ul class="simple"><li><tt class="docutils literal"><span class="pre">name</span></tt>: the name of the parser tuple to create (must be lowercase)</li>
-<li><tt class="docutils literal"><span class="pre">rest</span></tt>: <strong>optionally</strong> parser options and parameters</li>
-<li><tt class="docutils literal"><span class="pre">rest</span></tt> (last): a block of the format described above</li>
+Input:<ul class="simple"><li><tt class="docutils literal"><span class="pre">name</span></tt>: Name of the parser tuple to create (must be lowercase)</li>
+<li><tt class="docutils literal"><span class="pre">rest</span></tt>: <strong>Optional</strong> parser options and parameters</li>
+<li><tt class="docutils literal"><span class="pre">rest</span></tt> (last): Block of the format described above</li>
 </ul>
 <p>Output:</p>
 <ul class="simple"><li>Object type declaration with name <tt class="docutils literal"><span class="pre">tname</span></tt> ≡ <tt class="docutils literal"><span class="pre">capitalizeAscii(name)</span></tt></li>
@@ -444,10 +444,10 @@ Input:<ul class="simple"><li><tt class="docutils literal"><span class="pre">name
 <dt><pre><span class="Keyword">macro</span> <a href="#union.m%2Cuntyped%2Cuntyped%2Cvarargs%5Buntyped%5D"><span class="Identifier">union</span></a><span class="Other">(</span><span class="Identifier">name</span><span class="Other">,</span> <span class="Identifier">disc</span><span class="Other">:</span> <span class="Identifier">untyped</span><span class="Other">;</span> <span class="Identifier">rest</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">untyped</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">untyped</span></pre></dt>
 <dd>
 
-Input:<ul class="simple"><li><tt class="docutils literal"><span class="pre">name</span></tt>: the name of the parser tuple to create (must be lowercase)</li>
-<li><tt class="docutils literal"><span class="pre">disc</span></tt>: the definition of the discriminator field (<tt class="docutils literal"><span class="pre">name: type</span></tt>)</li>
-<li><tt class="docutils literal"><span class="pre">rest</span></tt>: <strong>optionally</strong> parser options and parameters</li>
-<li><tt class="docutils literal"><span class="pre">rest</span></tt> (last): a block of the format described above</li>
+Input:<ul class="simple"><li><tt class="docutils literal"><span class="pre">name</span></tt>: The name of the parser tuple to create (must be lowercase)</li>
+<li><tt class="docutils literal"><span class="pre">disc</span></tt>: The definition of the discriminator field (<tt class="docutils literal"><span class="pre">name: type</span></tt>)</li>
+<li><tt class="docutils literal"><span class="pre">rest</span></tt>: <strong>Optional</strong> parser options and parameters</li>
+<li><tt class="docutils literal"><span class="pre">rest</span></tt> (last): Block of the format described above</li>
 </ul>
 <p>Output:</p>
 <ul class="simple"><li><strong>Variant</strong> object type declaration with discriminator <tt class="docutils literal"><span class="pre">disc</span></tt> and name <tt class="docutils literal"><span class="pre">tname</span></tt> ≡ <tt class="docutils literal"><span class="pre">capitalizeAscii(name)</span></tt></li>
@@ -492,7 +492,7 @@ Input:<ul class="simple"><li><tt class="docutils literal"><span class="pre">name
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2021-04-03 22:48:13 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2021-04-07 15:08:24 UTC</small>
       </div>
     </div>
   </div>
