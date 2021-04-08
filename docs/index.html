@@ -359,10 +359,7 @@ function main() {
 <span class="Identifier">struct</span><span class="Punctuation">(</span><span class="Identifier">myParser</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
   <span class="DecNumber">8</span><span class="Punctuation">:</span> <span class="Identifier">shouldParse</span>
   <span class="DecNumber">64</span><span class="Punctuation">:</span> <span class="Identifier">x</span>
-  <span class="DecNumber">16</span> <span class="Punctuation">{</span><span class="Identifier">cond</span><span class="Punctuation">(</span><span class="Identifier">shouldParse</span><span class="Operator">.</span><span class="Identifier">bool</span><span class="Punctuation">)</span><span class="Punctuation">,</span> <span class="Identifier">increase</span><span class="Punctuation">(</span><span class="Identifier">x</span><span class="Punctuation">)</span><span class="Punctuation">}</span><span class="Punctuation">:</span> <span class="Identifier">y</span></pre><p>It is impossible for BinaryLang to infer the type of the altered value</p>
-<table frame="void"><tr><th align="left">-that is, if your operation changes it-. By default it is assumed that</th><td align="left"></td>
-</tr>
-</table><p>the new field value is of the same type as the <em>previous</em> one (for the first operation, this is the type produced according to the field type annotation). Therefore, if your operation alters the type, then you must provide the new type in square brackets:</p>
+  <span class="DecNumber">16</span> <span class="Punctuation">{</span><span class="Identifier">cond</span><span class="Punctuation">(</span><span class="Identifier">shouldParse</span><span class="Operator">.</span><span class="Identifier">bool</span><span class="Punctuation">)</span><span class="Punctuation">,</span> <span class="Identifier">increase</span><span class="Punctuation">(</span><span class="Identifier">x</span><span class="Punctuation">)</span><span class="Punctuation">}</span><span class="Punctuation">:</span> <span class="Identifier">y</span></pre><p>It is impossible for BinaryLang to infer the type of the altered value, that is, if your operation changes it. By default it is assumed that the new field value is of the same type as the <em>previous</em> one (for the first operation, this is the type produced according to the field type annotation). Therefore, if your operation alters the type, then you must provide the new type in square brackets:</p>
 <pre class="listing"><span class="Keyword">template</span> <span class="Identifier">asciiNumGet</span><span class="Punctuation">(</span><span class="Identifier">parse</span><span class="Punctuation">,</span> <span class="Identifier">parsed</span><span class="Punctuation">,</span> <span class="Identifier">output</span><span class="Punctuation">:</span> <span class="Identifier">untyped</span><span class="Punctuation">)</span> <span class="Operator">=</span>
   <span class="Identifier">parse</span>
   <span class="Identifier">output</span> <span class="Operator">=</span> <span class="Identifier">char</span><span class="Punctuation">(</span><span class="Identifier">parsed</span> <span class="Operator">-</span> <span class="CharLit">'0'</span><span class="Punctuation">)</span>
@@ -499,7 +496,7 @@ Input:<ul class="simple"><li><tt class="docutils literal"><span class="pre">name
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2021-04-08 02:04:13 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2021-04-08 02:08:11 UTC</small>
       </div>
     </div>
   </div>
