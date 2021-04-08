@@ -47,3 +47,13 @@ template condPosPut*(encode, encoded, output, condAndPos: untyped) =
     s.setPosition(pos)
     encode
     s.setPosition(save)
+
+## Required imports: sequtils
+template toStrGet*(parse, parsed, output: untyped) =
+  parse
+  output = parsed.mapIt(it.char).join
+template toStrPut*(encode, encoded, output: untyped) =
+  output = newSeq[byte](encoded.len)
+  for i in 0 ..< encoded.len:
+    output[i] = byte(encoded[i])
+  encode
