@@ -286,42 +286,49 @@
 ## specific pattern:
 ## - The names of the templates **must** follow the pattern: `<operation>get`
 ##   and `<operation>put`
-## - They must have at least 2 untyped parameters (you can name them as you wish):
-##    - **parameter #1**: the field you operate on
-##    - **parameter #2**: parsing/encoding statements
+## - They must have at least 3 untyped parameters (you can name them as you
+##   wish):
+##    - **parameter #1**: parsing/encoding statements
+##    - **parameter #2**: variable *previously* parsed/encoded
+##    - **parameter #3**: output
 ## 
 ## .. code:: nim
-##    template increaseGet(field, parse, num: untyped) =
+##    template increaseGet(parse, parsed, output, num: untyped) =
 ##      parse
-##      field += num
-##    template increasePut(field, encode, num: untyped) =
-##      field -= num
+##      output = parsed + num
+##    template increasePut(encode, encoded, output, num: untyped) =
+##      output = encoded - num
 ##      encode
 ##    struct(myParser):
 ##      64: x
 ##      16 {increase(x)}: y
 ##
-## Note that in `increaseGet` we parse *before* operating on `field`, while in
-## `increasePut` we encode *after* operating on `field`.
+## You can apply more than one operations on one field, in which case they
+## are chained in the specified order, and only the first operation really
+## does any parsing/encoding to the stream. The rest just operate on the
+## value produced by the operation directly before them.
 ##
-## You can also apply more than one operations on one field, in which case they
-## are chained in the specified order, and only the first plugin really does
-## any parsing/encoding. The rest just operate on the value produced by the
-## operation directly before them.
+## `parse` fills in the `parsed` variable. It is a seperate statement because
+## it potentially operates on the stream (this happens **always and only for
+## the first operation**). Similarly, `encode` passes on the value in
+## `output` variable. *Passes* means the value is potentially written to the
+## stream.
 ##
 ## .. code:: nim
-##    template condGet(field, parse, cond: untyped) =
+##    template condGet(parse, parsed, output, cond: untyped) =
 ##      if cond:
 ##        parse
-##    template condPut(field, encode, cond: untyped) =
+##        output = parsed
+##    template condPut(encode, encoded, output, cond: untyped) =
 ##      if cond:
+##        output = encoded
 ##        encode
-##    template increaseGet(field, pull, num: untyped) =
-##      pull
-##      field += num
-##    template increasePut(field, push, num: untyped) =
-##      field -= num
-##      push
+##    template increaseGet(parse, parsed, output, num: untyped) =
+##      parse
+##      output = parsed + num
+##    template increasePut(encode, encoded, output, num: untyped) =
+##      output = encoded - nim
+##      encode
 ##    struct(myParser):
 ##      8: shouldParse
 ##      64: x
@@ -331,11 +338,11 @@
 ## provide the new type in square brackets:
 ##
 ## .. code:: nim
-##    template asciiNumGet(field, parse: untyped) =
+##    template asciiNumGet(parse, parsed, output: untyped) =
 ##      parse
-##      char(field - '0')
-##    template asciiNumPut(field, encode: untyped) =
-##      int8(field + '0')
+##      output = char(parsed - '0')
+##    template asciiNumPut(encode, encoded, output: untyped) =
+##      output = int8(encoded + '0')
 ##      encode
 ##    struct(myParser):
 ##      8 {asciiNum[char]}: x
@@ -586,7 +593,7 @@ proc decodeOps(node: NimNode): Operations {.compileTime.} =
       name = child.strVal
     of nnkCall:
       name = child[0].strVal
-      for i in 1 ..< node.len:
+      for i in 1 ..< child.len:
         args.add(child[i].copyNimTree)
     else:
       syntaxError("Invalid syntax for operation")
@@ -1002,8 +1009,8 @@ proc generateReader(fields: seq[Field]; fst, pst: seq[string]):
     res = ident"result"
   result = newStmtList()
   for f in fields:
+    var rSym = genSym(nskVar)
     let
-      rSym = genSym(nskVar)
       ident = f.symbol.copyNimTree
       field = ident.strVal
     var impl = f.typ.getImpl
@@ -1015,24 +1022,24 @@ proc generateReader(fields: seq[Field]; fst, pst: seq[string]):
       var `rSym`: `impl`)
     var
       read = generateRead(rSym, f, bs, fst, pst)
-      inputSym, outputSym: NimNode
-    if f.ops.len > 1:
-      inputSym = rSym
+      outputSym, parsed: NimNode
+    if f.ops.len > 0:
       outputSym = genSym(nskVar)
-      var op = newCall(ident(f.ops[0].name & "get"), read, inputSym, outputSym)
+      parsed = genSym(nskVar)
       for i in 0 ..< f.ops.len:
         result.add(quote do:
-          var `outputSym`: `impl`)
+          var `outputSym`, `parsed`: `impl`)
+        var op = newCall(ident(f.ops[i].name & "get"), read, rSym, outputSym)
         for arg in f.ops[i].args:
           var argVal = arg.copyNimTree
           argVal.prefixFields(fst, pst, res)
-          argVal.replaceWith(ident"_", inputSym)
+          argVal.replaceWith(ident"_", rSym)
           op.add(argVal)
         result.add(op)
-        read = quote do: `outputSym` = `inputSym`
-        inputSym = outputSym
+        rSym = outputSym
         outputSym = genSym(nskVar)
-        op = newCall(ident(f.ops[1].name & "get"), read, inputSym, outputSym)
+        parsed = genSym(nskVar)
+        read = quote do: `parsed` = `outputSym`
     else:
       result.add(read)
     if field != "":
@@ -1046,8 +1053,8 @@ proc generateWriter(fields: seq[Field]; fst, pst: seq[string]):
     bs = ident"s"
     input = ident"input"
   for f in fields:
+    var wSym = genSym(nskVar)
     let
-      wSym = genSym(nskVar)
       ident = f.symbol.copyNimTree
       field = ident.strVal
     var impl = f.typ.getImpl
@@ -1067,37 +1074,36 @@ proc generateWriter(fields: seq[Field]; fst, pst: seq[string]):
       else:
         quote do:
           var `wSym` = `value`)
-    if f.ops.len > 1:
+    if f.ops.len > 0:
       var
-        toEncode = genSym(nskVar)
         encoded = genSym(nskVar)
-        inputSym = newDotExpr(input, ident)
-        write = quote do: `encoded` = `toEncode`
+        outputSym = genSym(nskVar)
       for i in countdown(f.ops.len - 1, 1):
-        var op = newCall(ident(f.ops[i].name & "put"), write, toEncode, inputSym)
+        var write = quote do: `outputSym` = `encoded`
+        var op = newCall(ident(f.ops[i].name & "put"), write, wSym, encoded)
         result.add(quote do:
-          var `toEncode`,`encoded`: `impl`)
+          var `encoded`, `outputSym`: `impl`)
         for arg in f.ops[i].args:
           var argVal = arg.copyNimTree
           argVal.prefixFields(fst, pst, input)
-          argVal.replaceWith(ident"_", inputSym)
+          argVal.replaceWith(ident"_", wSym)
           op.add(argVal)
         result.add(op)
-        write = quote do: `encoded` = `toEncode`
-        inputSym = toEncode
-        toEncode = genSym(nskVar)
+        wSym = encoded
+        encoded = genSym(nskVar)
+        outputSym = genSym(nskVar)
       result.add(quote do:
-        var `toEncode`: `impl`)
+        var `encoded`,`outputSym`: `impl`)
       var op =
         newCall(
           ident(f.ops[0].name & "put"),
-          generateWrite(toEncode, f, bs, fst, pst),
-          toEncode,
+          generateWrite(encoded, f, bs, fst, pst),
+          wSym,
           encoded)
       for arg in f.ops[0].args:
         var argVal = arg.copyNimTree
         argVal.prefixFields(fst, pst, input)
-        argVal.replaceWith(ident"_", inputSym)
+        argVal.replaceWith(ident"_", wSym)
         op.add(argVal)
       result.add(op)
     else:

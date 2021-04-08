@@ -6,7 +6,7 @@ import ../binarylang, ../binarylang/plugins
 
 struct(parser):
   u8: hasChild
-  *parser {cond: hasChild.bool}: child
+  *parser {cond(hasChild.bool)}: child
 
 block:
   var fbs = newFileBitStream("data/recursion.hex")

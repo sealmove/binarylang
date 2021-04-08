@@ -1,30 +1,35 @@
-# Primary (3 arguments)
-template condGet*(field, parse, condition: untyped) =
-  if condition:
+template condGet*(parse, parsed, output, cond: untyped) =
+  if cond:
     parse
-template condPut*(field, encode, condition: untyped) =
-  if condition:
+    output = parsed
+template condPut*(encode, encoded, output, cond: untyped) =
+  if cond:
+    output = encoded
     encode
 
-template validGet*(field, parse, condition: untyped) =
+template validGet*(parse, parsed, output, cond: untyped) =
   parse
-  assert condition
-template validPut*(field, encode, condition: untyped) =
-  assert condition
+  assert cond
+  output = parsed
+template validPut*(encode, encoded, output, cond: untyped) =
+  output = encoded
+  assert cond
   encode
 
-template posGet*(field, parse, pos: untyped) =
+template posGet*(parse, parsed, output, pos: untyped) =
   let save = getPosition(s)
   s.setPosition(pos)
   parse
   s.setPosition(save)
-template posPut*(field, encode, pos: untyped) =
+  output = parsed
+template posPut*(encode, encoded, output, pos: untyped) =
+  output = encoded
   let save = getPosition(s)
   s.setPosition(pos)
   encode
   s.setPosition(save)
 
-template condPosGet*(field, parse, condAndPos: untyped) =
+template condPosGet*(parse, parsed, output, condAndPos: untyped) =
   let
     (cond, pos) = condAndPos
     save = getPosition(s)
@@ -32,7 +37,9 @@ template condPosGet*(field, parse, condAndPos: untyped) =
     s.setPosition(pos)
     parse
     s.setPosition(save)
-template condPosPut*(field, encode, condAndPos: untyped) =
+    output = parsed
+template condPosPut*(encode, encoded, output, condAndPos: untyped) =
+  output = encoded
   let
     (cond, pos) = condAndPos
     save = getPosition(s)
@@ -40,37 +47,3 @@ template condPosPut*(field, encode, condAndPos: untyped) =
     s.setPosition(pos)
     encode
     s.setPosition(save)
-
-template addGet*(field, parse, n: untyped) =
-  parse
-  field += n
-template addPut*(field, encode, n: untyped) =
-  field -= n
-  encode
-
-template subGet*(field, parse, n: untyped) =
-  parse
-  field -= n
-template subPut*(field, encode, n: untyped) =
-  field += n
-  encode
-
-template multGet*(field, parse, n: untyped) =
-  parse
-  field *= n
-template multPut*(field, encode, n: untyped) =
-  field = field div n
-  encode
-
-template divGet*(field, parse, n: untyped) =
-  parse
-  field = field div n
-template divPut*(field, encode, n: untyped) =
-  field *= n
-  encode
-
-# Secondary (2 arguments)
-template validGet*(field, condition: untyped) =
-  assert condition
-template validPut*(field, condition: untyped) =
-  assert condition
