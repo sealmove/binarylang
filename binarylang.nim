@@ -327,14 +327,18 @@
 ##      parse
 ##      output = parsed + num
 ##    template increasePut(encode, encoded, output, num: untyped) =
-##      output = encoded - nim
+##      output = encoded - num
 ##      encode
 ##    struct(myParser):
 ##      8: shouldParse
 ##      64: x
 ##      16 {cond(shouldParse.bool), increase(x)}: y
 ##
-## If the operation you apply alters the type of the field, then you must
+## It is impossible for BinaryLang to infer the type of the altered value
+## -that is, if your operation changes it-. By default it is assumed that
+## the new field value is of the same type as the *previous* one (for the
+## first operation, this is the type produced according to the field type
+## annotation). Therefore, if your operation alters the type, then you must
 ## provide the new type in square brackets:
 ##
 ## .. code:: nim
@@ -346,6 +350,11 @@
 ##      encode
 ##    struct(myParser):
 ##      8 {asciiNum[char]}: x
+##
+## The actual type of the field changes to the type annotated in the last
+## operation. if you annotate the type for *some* of the operations, then for
+## the ones you did not, the type of the operation directly previous to it is
+## assumed.
 ##
 ## Special notes
 ## ----------------------------------------------------------------------------
@@ -383,7 +392,11 @@ type
       size: BiggestInt
     endian: Endianness
     bitEndian: Endianness
-  Operations = seq[tuple[name: string, args: seq[NimNode]]]
+  Operation = tuple
+    name: string
+    typ: NimNode
+    args: seq[NimNode]
+  Operations = seq[Operation]
   Repeat = enum
     rNo
     rFor
@@ -587,17 +600,28 @@ proc decodeOps(node: NimNode): Operations {.compileTime.} =
   for child in node:
     var
       name: string
+      typ: NimNode
       args: seq[NimNode]
     case child.kind
     of nnkIdent:
       name = child.strVal
-    of nnkCall:
+    of nnkBracketExpr:
       name = child[0].strVal
+      typ = child[1].copyNimTree
+    of nnkCall:
+      case child[0].kind
+      of nnkIdent:
+        name = child[0].strVal
+      of nnkBracketExpr:
+        name = child[0][0].strVal
+        typ = child[0][1].copyNimTree
+      else:
+        syntaxError("Invalid syntax for operation")
       for i in 1 ..< child.len:
         args.add(child[i].copyNimTree)
     else:
       syntaxError("Invalid syntax for operation")
-    result.add (name, args)
+    result.add (name, typ, args)
 
 proc decodeValue(node: NimNode, st: var seq[string]): Value {.compileTime.} =
   var node = node
@@ -1024,11 +1048,19 @@ proc generateReader(fields: seq[Field]; fst, pst: seq[string]):
       read = generateRead(rSym, f, bs, fst, pst)
       outputSym, parsed: NimNode
     if f.ops.len > 0:
+      # Infer potentially missing types for operations
+      for i in 0 ..< f.ops.len:
+        if f.ops[i].typ == nil:
+          if i == 0:
+            f.ops[i].typ = impl.copyNimTree
+          else:
+            f.ops[i].typ = f.ops[i-1].typ
       outputSym = genSym(nskVar)
       parsed = genSym(nskVar)
       for i in 0 ..< f.ops.len:
+        var typeImpl = f.ops[i].typ
         result.add(quote do:
-          var `outputSym`, `parsed`: `impl`)
+          var `outputSym`, `parsed`: `typeImpl`)
         var op = newCall(ident(f.ops[i].name & "get"), read, rSym, outputSym)
         for arg in f.ops[i].args:
           var argVal = arg.copyNimTree
@@ -1075,14 +1107,23 @@ proc generateWriter(fields: seq[Field]; fst, pst: seq[string]):
         quote do:
           var `wSym` = `value`)
     if f.ops.len > 0:
+      # Infer potentially missing types for operations
+      for i in 0 ..< f.ops.len:
+        if f.ops[i].typ == nil:
+          if i == 0:
+            f.ops[i].typ = impl.copyNimTree
+          else:
+            f.ops[i].typ = f.ops[i-1].typ
       var
         encoded = genSym(nskVar)
         outputSym = genSym(nskVar)
       for i in countdown(f.ops.len - 1, 1):
-        var write = quote do: `outputSym` = `encoded`
-        var op = newCall(ident(f.ops[i].name & "put"), write, wSym, encoded)
+        var
+          typeImpl = f.ops[i].typ
+          write = quote do: `outputSym` = `encoded`
+          op = newCall(ident(f.ops[i].name & "put"), write, wSym, encoded)
         result.add(quote do:
-          var `encoded`, `outputSym`: `impl`)
+          var `encoded`, `outputSym`: `typeImpl`)
         for arg in f.ops[i].args:
           var argVal = arg.copyNimTree
           argVal.prefixFields(fst, pst, input)

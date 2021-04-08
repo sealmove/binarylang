@@ -55,3 +55,14 @@ v0.4.0 (3 April 2021)
   implicitly. The second argument of the ``union`` macro must be a single
   identifier denoting the type of the discriminator -as opposed to an
   expression-colon-expression-.
+
+v0.5.0 (8 April 2021)
+-------------------------------------------------------------------------------
+- API change: The plugin system is reworked as follows:
+    - Call syntax is used instead of expression-bracket-expression, in order to
+      support arbitrary number of arguments.
+    - The API is homogenic regardless of whether the plugin interfaces with the
+      stream or not.
+    - Type conversion is supported by explicit annotation.
+    - Due to the above, *properties* are rendered redundant, and therefore not
+      a thing anymore (completely removed).
