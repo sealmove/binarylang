@@ -334,8 +334,8 @@
 ##      64: x
 ##      16 {cond(shouldParse.bool), increase(x)}: y
 ##
-## It is impossible for BinaryLang to infer the type of the altered value
-## -that is, if your operation changes it-. By default it is assumed that
+## It is impossible for BinaryLang to infer the type of the altered value,
+## that is, if your operation changes it. By default it is assumed that
 ## the new field value is of the same type as the *previous* one (for the
 ## first operation, this is the type produced according to the field type
 ## annotation). Therefore, if your operation alters the type, then you must
