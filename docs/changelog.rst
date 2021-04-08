@@ -66,3 +66,8 @@ v0.5.0 (8 April 2021)
     - Type conversion is supported by explicit annotation.
     - Due to the above, *properties* are rendered redundant, and therefore not
       a thing anymore (completely removed).
+
+v0.5.1 (8 April 2021)
+-------------------------------------------------------------------------------
+- Bugfix: BinaryLang now correctly uses the alterned type specified by the last
+  operation, in the struct's/union's type declaration.

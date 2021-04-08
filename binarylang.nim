@@ -1269,11 +1269,15 @@ macro struct*(name: untyped, rest: varargs[untyped]): untyped =
     let
       ident = f.symbol
       field = ident.strVal
-    var impl = f.typ.getImpl
-    if f.val.repeat != rNo:
-      impl = quote do: seq[`impl`]
-    if f.val.isMagic:
-      impl = quote do: seq[`impl`]
+    var impl: NimNode
+    if f.ops.len > 0:
+      impl = f.ops[^1].typ.copyNimTree
+    else:
+      impl = f.typ.getImpl
+      if f.val.repeat != rNo:
+        impl = quote do: seq[`impl`]
+      if f.val.isMagic:
+        impl = quote do: seq[`impl`]
     if field != "":
       fieldDefs.add(
         newIdentDefs(
@@ -1475,11 +1479,15 @@ macro union*(name, disc: untyped; rest: varargs[untyped]):
         var rl = newTree(nnkRecList)
         for f in v.fields:
           if f.val.name != "":
-            var impl = f.typ.getImpl
-            if f.val.repeat != rNo:
-              impl = quote do: seq[`impl`]
-            if f.val.isMagic:
-              impl = quote do: seq[`impl`]
+            var impl: NimNode
+            if f.ops.len > 0:
+              impl = f.ops[^1].typ.copyNimTree
+            else:
+              impl = f.typ.getImpl
+              if f.val.repeat != rNo:
+                impl = quote do: seq[`impl`]
+              if f.val.isMagic:
+                impl = quote do: seq[`impl`]
             rl.add(
               newIdentDefs(
                 if f.val.isExported: postfix(f.symbol, "*")
