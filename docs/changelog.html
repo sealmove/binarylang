@@ -64,39 +64,7 @@ function main() {
   <div class="container">
     <h1 class="title">changelog</h1>
     
-<h1 id="v0dot2dot0-22-march-2021">v0.2.0 (22 March 2021)</h1><p>With many breaking changes, this marks the beginning of version control!</p>
-<ul class="simple"><li>Documentation is updated and refined to reflect the new API.</li>
-<li><tt class="docutils literal"><span class="pre">createParser</span></tt> now declares an object type which is used by the parsing/encoding procs. This enables describing recursive parsers.</li>
-<li>The first argument of <tt class="docutils literal"><span class="pre">createParser</span></tt>/<tt class="docutils literal"><span class="pre">createVariantParser</span></tt> must now <em>mandatorily</em> be in lowercase and it has an extra meaning: it is used for deriving the name of the object type: <tt class="docutils literal"><span class="pre">objname</span></tt> ≡ <tt class="docutils literal"><span class="pre">capitalizeAscii(parsername)</span></tt>.</li>
-<li><tt class="docutils literal"><span class="pre">@hook</span></tt> property is implemented</li>
-<li><tt class="docutils literal"><span class="pre">typeGetter</span></tt> is marked as deprecated.</li>
-<li>Switched from unittest to testament.</li>
-</ul>
-
-<h1 id="v0dot3dot0-25-march-2021">v0.3.0 (25 March 2021)</h1><ul class="simple"><li>Bugfixes for <tt class="docutils literal"><span class="pre">@put</span></tt>/<tt class="docutils literal"><span class="pre">@hook</span></tt> properties.</li>
-<li>The underlying field when using properties can now be accessed with the identifier <tt class="docutils literal"><span class="pre">&lt;field&gt;Impl</span></tt>.</li>
-<li>Exportation of fields using <tt class="docutils literal"><span class="pre">*</span></tt> now also works when using properties.</li>
-<li>Parser and parser's type symbols can now be exported by prepending <tt class="docutils literal"><span class="pre">*</span></tt> to the parser's name.</li>
-<li><tt class="docutils literal"><span class="pre">createParser</span></tt> and <tt class="docutils literal"><span class="pre">createVariantParser</span></tt> now also generate converters from/to <tt class="docutils literal"><span class="pre">string</span></tt>.</li>
-</ul>
-
-<h1 id="v0dot3dot1-25-march-2021">v0.3.1 (25 March 2021)</h1><ul class="simple"><li>Implemented <em>converters</em> properly. They are now procs with the names:<ul class="simple"><li><tt class="docutils literal"><span class="pre">from&lt;parser&gt;</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">to&lt;parser&gt;</span></tt></li>
-</ul>
-</li>
-</ul>
-
-<h1 id="v0dot3dot2-2-april-2021">v0.3.2 (2 April 2021)</h1><ul class="simple"><li>Bugfix: symbol table under branches of variant parsers was not updated after each field</li>
-<li>Bugfix: anonymous fields in variant parsers were not discarded</li>
-</ul>
-
-<h1 id="v0dot3dot3-2-april-2021">v0.3.3 (2 April 2021)</h1><ul class="simple"><li>Bugfix: Magic now works properly in <tt class="docutils literal"><span class="pre">createVariantParser</span></tt></li>
-<li>Converters are now also exported when exporting the corresponding parser</li>
-</ul>
-
-<h1 id="v0dot4dot0-3-april-2021">v0.4.0 (3 April 2021)</h1><ul class="simple"><li>API change: <tt class="docutils literal"><span class="pre">createParser</span></tt>/<tt class="docutils literal"><span class="pre">createVariantParser</span></tt> were renamed to <tt class="docutils literal"><span class="pre">struct</span></tt>/<tt class="docutils literal"><span class="pre">union</span></tt> respectively</li>
-<li>API change: <em>complex</em> type is now divided into <em>product</em> and <em>sum</em> type for parsers created with the <tt class="docutils literal"><span class="pre">struct</span></tt>/<tt class="docutils literal"><span class="pre">union</span></tt> macro respectively. Sum parsers differ from product parsers in that the first argument is mandatory and is treated differently since it refers to the <em>discriminator</em>. Specifically, the passed argument is calculated only during parsing, whereas during serialization the value stored in the <tt class="docutils literal"><span class="pre">disc</span></tt> field is used.</li>
-<li>API change: The discriminator field of sum parsers is always called <tt class="docutils literal"><span class="pre">disc</span></tt> implicitly. The second argument of the <tt class="docutils literal"><span class="pre">union</span></tt> macro must be a single identifier denoting the type of the discriminator -as opposed to an expression-colon-expression-.</li>
+<h1 id="v0dot5dot1-8-april-2021">v0.5.1 (8 April 2021)</h1><ul class="simple"><li>Bugfix: BinaryLang now correctly uses the alterned type specified by the last operation, in the struct's/union's type declaration.</li>
 </ul>
 
 <h1 id="v0dot5dot0-8-april-2021">v0.5.0 (8 April 2021)</h1><ul class="simple"><li><dl class="docutils"><dt>API change: The plugin system is reworked as follows:</dt>
@@ -110,7 +78,39 @@ function main() {
 </li>
 </ul>
 
-<h1 id="v0dot5dot1-8-april-2021">v0.5.1 (8 April 2021)</h1><ul class="simple"><li>Bugfix: BinaryLang now correctly uses the alterned type specified by the last operation, in the struct's/union's type declaration.</li>
+<h1 id="v0dot4dot0-3-april-2021">v0.4.0 (3 April 2021)</h1><ul class="simple"><li>API change: <tt class="docutils literal"><span class="pre">createParser</span></tt>/<tt class="docutils literal"><span class="pre">createVariantParser</span></tt> were renamed to <tt class="docutils literal"><span class="pre">struct</span></tt>/<tt class="docutils literal"><span class="pre">union</span></tt> respectively</li>
+<li>API change: <em>complex</em> type is now divided into <em>product</em> and <em>sum</em> type for parsers created with the <tt class="docutils literal"><span class="pre">struct</span></tt>/<tt class="docutils literal"><span class="pre">union</span></tt> macro respectively. Sum parsers differ from product parsers in that the first argument is mandatory and is treated differently since it refers to the <em>discriminator</em>. Specifically, the passed argument is calculated only during parsing, whereas during serialization the value stored in the <tt class="docutils literal"><span class="pre">disc</span></tt> field is used.</li>
+<li>API change: The discriminator field of sum parsers is always called <tt class="docutils literal"><span class="pre">disc</span></tt> implicitly. The second argument of the <tt class="docutils literal"><span class="pre">union</span></tt> macro must be a single identifier denoting the type of the discriminator -as opposed to an expression-colon-expression-.</li>
+</ul>
+
+<h1 id="v0dot3dot3-2-april-2021">v0.3.3 (2 April 2021)</h1><ul class="simple"><li>Bugfix: Magic now works properly in <tt class="docutils literal"><span class="pre">createVariantParser</span></tt></li>
+<li>Converters are now also exported when exporting the corresponding parser</li>
+</ul>
+
+<h1 id="v0dot3dot2-2-april-2021">v0.3.2 (2 April 2021)</h1><ul class="simple"><li>Bugfix: symbol table under branches of variant parsers was not updated after each field</li>
+<li>Bugfix: anonymous fields in variant parsers were not discarded</li>
+</ul>
+
+<h1 id="v0dot3dot1-25-march-2021">v0.3.1 (25 March 2021)</h1><ul class="simple"><li>Implemented <em>converters</em> properly. They are now procs with the names:<ul class="simple"><li><tt class="docutils literal"><span class="pre">from&lt;parser&gt;</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">to&lt;parser&gt;</span></tt></li>
+</ul>
+</li>
+</ul>
+
+<h1 id="v0dot3dot0-25-march-2021">v0.3.0 (25 March 2021)</h1><ul class="simple"><li>Bugfixes for <tt class="docutils literal"><span class="pre">@put</span></tt>/<tt class="docutils literal"><span class="pre">@hook</span></tt> properties.</li>
+<li>The underlying field when using properties can now be accessed with the identifier <tt class="docutils literal"><span class="pre">&lt;field&gt;Impl</span></tt>.</li>
+<li>Exportation of fields using <tt class="docutils literal"><span class="pre">*</span></tt> now also works when using properties.</li>
+<li>Parser and parser's type symbols can now be exported by prepending <tt class="docutils literal"><span class="pre">*</span></tt> to the parser's name.</li>
+<li><tt class="docutils literal"><span class="pre">createParser</span></tt> and <tt class="docutils literal"><span class="pre">createVariantParser</span></tt> now also generate converters from/to <tt class="docutils literal"><span class="pre">string</span></tt>.</li>
+</ul>
+
+<h1 id="v0dot2dot0-22-march-2021">v0.2.0 (22 March 2021)</h1><p>With many breaking changes, this marks the beginning of version control!</p>
+<ul class="simple"><li>Documentation is updated and refined to reflect the new API.</li>
+<li><tt class="docutils literal"><span class="pre">createParser</span></tt> now declares an object type which is used by the parsing/encoding procs. This enables describing recursive parsers.</li>
+<li>The first argument of <tt class="docutils literal"><span class="pre">createParser</span></tt>/<tt class="docutils literal"><span class="pre">createVariantParser</span></tt> must now <em>mandatorily</em> be in lowercase and it has an extra meaning: it is used for deriving the name of the object type: <tt class="docutils literal"><span class="pre">objname</span></tt> ≡ <tt class="docutils literal"><span class="pre">capitalizeAscii(parsername)</span></tt>.</li>
+<li><tt class="docutils literal"><span class="pre">@hook</span></tt> property is implemented</li>
+<li><tt class="docutils literal"><span class="pre">typeGetter</span></tt> is marked as deprecated.</li>
+<li>Switched from unittest to testament.</li>
 </ul>
 
 
@@ -119,7 +119,7 @@ function main() {
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2021-04-08 03:24:12 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2021-06-08 02:00:22 UTC</small>
       </div>
     </div>
   </div>
