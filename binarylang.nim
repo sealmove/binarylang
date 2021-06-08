@@ -384,7 +384,7 @@ type
     osBitEndian
   Kind = enum
     kInt, kUInt, kFloat, kStr, kProduct, kSum
-  Type = ref object
+  Type = object
     case kind: Kind
     of kProduct, kSum:
       symbol: NimNode
@@ -402,7 +402,7 @@ type
     rNo
     rFor
     rUntil
-  Value = ref object
+  Value = object
     name: string
     case repeat: Repeat
     of rFor, rUntil: repeatExpr: NimNode
@@ -411,13 +411,13 @@ type
     sizeExpr: NimNode
     isMagic: bool
     isExported: bool
-  Field = ref object
+  Field = object
     typ: Type
     ops: Operations
     val: Value
     symbol: NimNode
     magic: Field
-  Variation = ref object
+  Variation = object
     case isElseBranch: bool:
     of false:
       cases: seq[NimNode]
