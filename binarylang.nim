@@ -28,6 +28,10 @@
 ##    - *default*: left -> right
 ##    - `n`: left -> right (**normal**)
 ##    - `r`: left <- right (**reverse**)
+## - `reference`: configures whether the associated type will be a `ref` or not
+##    - *default*: no
+##    - `y`: yes
+##    - `n`: no
 ##
 ## Parser parameters
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -379,9 +383,11 @@ type
   Options = tuple
     endian: Endianness
     bitEndian: Endianness
+    reference: bool
   OptionSet = enum
     osEndian
     osBitEndian
+    osReference
   Kind = enum
     kInt, kUInt, kFloat, kStr, kProduct, kSum
   Type = object
@@ -411,7 +417,7 @@ type
     sizeExpr: NimNode
     isMagic: bool
     isExported: bool
-  Field = object
+  Field = ref object
     typ: Type
     ops: Operations
     val: Value
@@ -432,7 +438,8 @@ type
 
 const defaultOptions: Options = (
   endian: bigEndian,
-  bitEndian: bigEndian)
+  bitEndian: bigEndian,
+  reference: false)
 
 macro typeGetter*(body: typed): untyped {.deprecated: "use type directly".} =
   body.getTypeImpl[0][1][0][0]
@@ -688,6 +695,16 @@ proc decodeHeader(input: seq[NimNode]):
           raise newException(Defect,
             "Invalid value for 'bitEndian' option (valid values: n, r)")
         specifiedOpts.incl osBitEndian
+      of "reference":
+        if osReference in specifiedOpts:
+          raise newException(Defect,
+            "Option 'reference' was specified more than once")
+        case n[1].strVal
+        of "y": result.opts.reference = true
+        of "n": result.opts.reference = false
+        else:
+          raise newException(Defect,
+            "Invalid value for 'reference' option (valid values: y, n)")
       else:
         raise newException(Defect, &"Unknown option: {$n[0]}")
     else:
@@ -1286,16 +1303,17 @@ macro struct*(name: untyped, rest: varargs[untyped]): untyped =
           if f.val.isExported: postfix(f.symbol, "*")
           else: f.symbol,
         impl))
+  let typeBody = nnkObjectTy.newTree(
+    newEmptyNode(),
+    newEmptyNode(),
+    fieldDefs)
   result.add(
     nnkTypeSection.newTree(
       nnkTypeDef.newTree(
         tdef,
         newEmptyNode(),
-        nnkRefTy.newTree(
-          nnkObjectTy.newTree(
-            newEmptyNode(),
-            newEmptyNode(),
-            fieldDefs)))))
+        if parserOptions.reference: nnkRefTy.newTree(typeBody)
+        else: typeBody)))
   let
     readerName = genSym(nskProc)
     writerName = genSym(nskProc)
@@ -1504,17 +1522,18 @@ macro union*(name, disc: untyped; rest: varargs[untyped]):
       branch.add(v.cases)
       branch.add(left)
       objectMeat.add(branch)
+  let typeBody = nnkObjectTy.newTree(
+    newEmptyNode(),
+    newEmptyNode(),
+    nnkRecList.newTree(
+      objectMeat))
   result.add(
     nnkTypeSection.newTree(
       nnkTypeDef.newTree(
         tdef,
         newEmptyNode(),
-        nnkRefTy.newTree(
-          nnkObjectTy.newTree(
-            newEmptyNode(),
-            newEmptyNode(),
-            nnkRecList.newTree(
-              objectMeat))))))
+        if parserOptions.reference: nnkRefTy.newTree(typeBody)
+        else: typeBody)))
   let readerName = genSym(nskProc)
   var getCaseStmt = nnkCaseStmt.newTree(discName)
   let readerProcForwardDecl = quote do:

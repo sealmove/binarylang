@@ -4,7 +4,7 @@ discard """
 
 import ../binarylang, ../binarylang/plugins
 
-struct(parser):
+struct(parser, reference = y):
   u8: hasChild
   *parser {cond(hasChild.bool)}: child
 
