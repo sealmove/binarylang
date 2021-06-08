@@ -23,6 +23,7 @@
 ##    - *default*: big endian
 ##    - `b`: **big** endian
 ##    - `l`: **little** endian
+##    - `c`: **cpu** endian
 ## - `bitEndian`: sets the default bit endianness for the whole parser
 ##    - *default*: left -> right
 ##    - `n`: left -> right (**normal**)
@@ -671,6 +672,7 @@ proc decodeHeader(input: seq[NimNode]):
         case n[1].strVal
         of "b": result.opts.endian = bigEndian
         of "l": result.opts.endian = littleEndian
+        of "c": result.opts.endian = cpuEndian
         else:
           raise newException(Defect,
             "Invalid value for endian option (valid values: l, b)")
