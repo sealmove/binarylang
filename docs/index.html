@@ -223,7 +223,7 @@ function main() {
 <p>You can order options however you want, but size must come last (e.g. <tt class="docutils literal"><span class="pre">lru16</span></tt> and <tt class="docutils literal"><span class="pre">url16</span></tt> are valid but not <tt class="docutils literal"><span class="pre">16lru</span></tt>).</p>
 <p>Assertion can also be used in a special manner to terminate the previous field if it's a <strong>string</strong> or a <strong>sequence indicated as magic-terminated</strong>. This is discussed in later sections.</p>
 
-<h2><a class="toc-backref" id="types-product-type" href="#types-product-type">Product type</a></h2><p>A parser is of type <strong>product</strong> if it is created with the <tt class="docutils literal"><span class="pre">struct</span></tt> macro or <em>by hand</em>, as explained in a later section. To call a product parser you must use <tt class="docutils literal"><span class="pre">*</span></tt> followed by the name of the parser. If your parser requires arguments, you must them using standard call syntax.</p>
+<h2><a class="toc-backref" id="types-product-type" href="#types-product-type">Product type</a></h2><p>A parser is of type <strong>product</strong> if it is created with the <tt class="docutils literal"><span class="pre">struct</span></tt> macro or <em>by hand</em>, as explained in a later section. To call a product parser you must use <tt class="docutils literal"><span class="pre">*</span></tt> followed by the name of the parser. If your parser requires arguments, you must provide them using standard call syntax.</p>
 <p>Example:</p>
 <pre class="listing"><span class="Identifier">struct</span><span class="Punctuation">(</span><span class="Identifier">inner</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
   <span class="DecNumber">32</span><span class="Punctuation">:</span> <span class="Identifier">a</span>
@@ -319,7 +319,7 @@ function main() {
 </ul>
 
 <h1><a class="toc-backref" id="extensions" href="#extensions">Extensions</a></h1>
-<h2><a class="toc-backref" id="extensions-custom-parser-api" href="#extensions-custom-parser-api">Custom parser API</a></h2><p>Since a BinaryLang parser is just a <tt class="docutils literal"><span class="pre">tuple[get: proc, set: proc]</span></tt>, you can write parsers by hand that are compatible with the DSL. Just be sure that <tt class="docutils literal"><span class="pre">get</span></tt> and <tt class="docutils literal"><span class="pre">set</span></tt> have proper signatures, and there is a type with the same name as your parser but capitalized:</p>
+<h2><a class="toc-backref" id="extensions-custom-parser-api" href="#extensions-custom-parser-api">Custom parser API</a></h2><p>Since a BinaryLang parser is just a <tt class="docutils literal"><span class="pre">tuple[get: proc, put: proc]</span></tt>, you can write parsers by hand that are compatible with the DSL. Just be sure that <tt class="docutils literal"><span class="pre">get</span></tt> and <tt class="docutils literal"><span class="pre">put</span></tt> have proper signatures, and there is a type with the same name as your parser but capitalized:</p>
 <pre class="listing"><span class="Keyword">type</span> <span class="Identifier">Parser</span> <span class="Operator">=</span> <span class="Identifier">SomeType</span>
 <span class="Keyword">proc</span> <span class="Identifier">get</span><span class="Punctuation">(</span><span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">BitStream</span><span class="Punctuation">)</span><span class="Punctuation">:</span> <span class="Identifier">Parser</span>
 <span class="Keyword">proc</span> <span class="Identifier">put</span><span class="Punctuation">(</span><span class="Identifier">s</span><span class="Punctuation">:</span> <span class="Identifier">BitStream</span><span class="Punctuation">,</span> <span class="Identifier">input</span><span class="Punctuation">:</span> <span class="Identifier">Parser</span><span class="Punctuation">)</span>
@@ -505,7 +505,7 @@ Input:<ul class="simple"><li><tt class="docutils literal"><span class="pre">name
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2021-06-08 13:18:18 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2021-07-05 05:48:12 UTC</small>
       </div>
     </div>
   </div>
