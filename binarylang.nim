@@ -81,7 +81,7 @@
 ## A parser is of type **product** if it is created with the ``struct`` macro
 ## or *by hand*, as explained in a later section. To call a product parser you
 ## must use `*` followed by the name of the parser. If your parser requires
-## arguments, you must them using standard call syntax.
+## arguments, you must provide them using standard call syntax.
 ##
 ## Example:
 ##
@@ -256,9 +256,9 @@
 ##
 ## Custom parser API
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-## Since a BinaryLang parser is just a `tuple[get: proc, set: proc]`, you can
+## Since a BinaryLang parser is just a `tuple[get: proc, put: proc]`, you can
 ## write parsers by hand that are compatible with the DSL. Just be sure that
-## `get` and `set` have proper signatures, and there is a type with the same
+## `get` and `put` have proper signatures, and there is a type with the same
 ## name as your parser but capitalized:
 ##
 ## .. code:: nim
