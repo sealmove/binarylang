@@ -608,7 +608,7 @@ proc decodeOps(node: NimNode): Operations {.compileTime.} =
   for child in node:
     var
       name: string
-      typ: NimNode
+      typ = newTree(nnkNone)
       args: seq[NimNode]
     case child.kind
     of nnkIdent:
@@ -1069,11 +1069,11 @@ proc generateReader(fields: seq[Field]; fst, pst: seq[string]):
     if f.ops.len > 0:
       # Infer potentially missing types for operations
       for i in 0 ..< f.ops.len:
-        if f.ops[i].typ == nil:
+        if f.ops[i].typ.kind == nnkNone:
           if i == 0:
             f.ops[i].typ = impl.copyNimTree
           else:
-            f.ops[i].typ = f.ops[i-1].typ
+            f.ops[i].typ = f.ops[i-1].typ.copyNimTree
       outputSym = genSym(nskVar)
       parsed = genSym(nskVar)
       for i in 0 ..< f.ops.len:
@@ -1128,11 +1128,11 @@ proc generateWriter(fields: seq[Field]; fst, pst: seq[string]):
     if f.ops.len > 0:
       # Infer potentially missing types for operations
       for i in 0 ..< f.ops.len:
-        if f.ops[i].typ == nil:
+        if f.ops[i].typ.kind == nnkNone:
           if i == 0:
             f.ops[i].typ = impl.copyNimTree
           else:
-            f.ops[i].typ = f.ops[i-1].typ
+            f.ops[i].typ = f.ops[i-1].typ.copyNimTree
       var
         encoded = genSym(nskVar)
         outputSym = genSym(nskVar)
@@ -1499,9 +1499,14 @@ macro union*(name, disc: untyped; rest: varargs[untyped]):
         var rl = newTree(nnkRecList)
         for f in v.fields:
           if f.val.name != "":
-            var impl: NimNode
+            var impl = newTree(nnkNone)
             if f.ops.len > 0:
-              impl = f.ops[^1].typ.copyNimTree
+              for i in countdown(f.ops.len-1, 0):
+                if f.ops[^1].typ.kind != nnkNone:
+                  impl = f.ops[^1].typ.copyNimTree
+                  break
+              if impl.kind == nnkNone:
+                impl = f.typ.getImpl
             else:
               impl = f.typ.getImpl
               if f.val.repeat != rNo:
