@@ -17,7 +17,7 @@
 <link href='https://fonts.googleapis.com/css?family=Source+Code+Pro:400,500,600' rel='stylesheet' type='text/css'/>
 
 <!-- CSS -->
-<title>changelog</title>
+<title>docs/changelog</title>
 <link rel="stylesheet" type="text/css" href="nimdoc.out.css">
 
 <script type="text/javascript" src="dochack.js"></script>
@@ -34,7 +34,6 @@ function main() {
     }
   }
 
-  const toggleSwitch = document.querySelector('.theme-switch input[type="checkbox"]');
   function switchTheme(e) {
       if (e.target.checked) {
           document.documentElement.setAttribute('data-theme', 'dark');
@@ -45,25 +44,42 @@ function main() {
       }
   }
 
-  toggleSwitch.addEventListener('change', switchTheme, false);
+  const toggleSwitch = document.querySelector('.theme-switch input[type="checkbox"]');
+  if (toggleSwitch !== null) {
+    toggleSwitch.addEventListener('change', switchTheme, false);
+  }
 
-  const currentTheme = localStorage.getItem('theme') ? localStorage.getItem('theme') : null;
+  var currentTheme = localStorage.getItem('theme');
+  if (!currentTheme && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    currentTheme = 'dark';
+  }
   if (currentTheme) {
     document.documentElement.setAttribute('data-theme', currentTheme);
 
-    if (currentTheme === 'dark') {
+    if (currentTheme === 'dark' && toggleSwitch !== null) {
       toggleSwitch.checked = true;
     }
   }
 }
+
+window.addEventListener('DOMContentLoaded', main);
 </script>
 
 </head>
-<body onload="main()">
+<body>
 <div class="document" id="documentId">
   <div class="container">
-    <h1 class="title">changelog</h1>
+    <h1 class="title">docs/changelog</h1>
     
+<h1 id="v0dot6dot0-11-january-2023">v0.6.0 (11 January 2023)</h1><ul class="simple"><li>Added <tt class="docutils literal"><span class="pre">toStr</span></tt> plugin</li>
+<li>Added cpu endian parser option</li>
+<li>You can now choose between value or ref semantics with a new parser option</li>
+<li>Split codebase in multiple source files</li>
+<li>Removed deprecated procs</li>
+<li>MagicError is now exported</li>
+<li>Bugfix: Multiple values in a single union branch selector did not work in the latest Nim compiler</li>
+</ul>
+
 <h1 id="v0dot5dot1-8-april-2021">v0.5.1 (8 April 2021)</h1><ul class="simple"><li>Bugfix: BinaryLang now correctly uses the alterned type specified by the last operation, in the struct's/union's type declaration.</li>
 </ul>
 
@@ -119,7 +135,7 @@ function main() {
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2021-08-22 22:56:31 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2023-01-11 12:30:57 UTC</small>
       </div>
     </div>
   </div>
