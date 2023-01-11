@@ -189,8 +189,22 @@ window.addEventListener('DOMContentLoaded', main);
 </dd>
 </dl>
 </li>
+<li><dl class="docutils"><dt><tt class="docutils literal"><span class="pre"><span class="Identifier">plugins</span></span></tt>: enable additional codegen features (value is a set)</dt>
+<dd><ul class="simple"><li><tt class="docutils literal"><span class="pre"><span class="Identifier">converters</span></span></tt>: generate <em>from</em> and <em>to</em> procs for converting from/to <tt class="docutils literal"><span class="pre"><span class="Identifier">string</span></span></tt></li>
 </ul>
+</dd>
+</dl>
+</li>
+</ul>
+<pre class="listing"><span class="Identifier">struct</span><span class="Punctuation">(</span><span class="Identifier">data</span><span class="Punctuation">,</span> <span class="Identifier">plugins</span> <span class="Operator">=</span> <span class="Punctuation">{</span><span class="Identifier">converters</span><span class="Punctuation">}</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
+  <span class="DecNumber">8</span><span class="Punctuation">:</span> <span class="Identifier">x</span>
 
+<span class="Keyword">var</span> <span class="Identifier">fileContent</span> <span class="Operator">=</span> <span class="Identifier">readFile</span><span class="Punctuation">(</span><span class="StringLit">&quot;data/plugins.hex&quot;</span><span class="Punctuation">)</span>
+<span class="Keyword">let</span> <span class="Identifier">data</span> <span class="Operator">=</span> <span class="Identifier">fileContent</span><span class="Operator">.</span><span class="Identifier">toData</span>
+<span class="Identifier">assert</span> <span class="Identifier">data</span><span class="Operator">.</span><span class="Identifier">x</span> <span class="Operator">==</span> <span class="HexNumber">0x41</span>
+
+<span class="Keyword">let</span> <span class="Identifier">reparsed</span> <span class="Operator">=</span> <span class="Identifier">data</span><span class="Operator">.</span><span class="Identifier">fromData</span>
+<span class="Identifier">assert</span> <span class="Identifier">reparsed</span> <span class="Operator">==</span> <span class="StringLit">&quot;A&quot;</span></pre>
 <h2><a class="toc-backref" id="dsl-invocation-parser-parameters" href="#dsl-invocation-parser-parameters">Parser parameters</a></h2><p>Each parameter must be in the form <tt class="docutils literal"><span class="pre"><span class="Identifier">symbol</span><span class="Punctuation">:</span> <span class="Keyword">type</span></span></tt>. The generated <tt class="docutils literal"><span class="pre"><span class="Identifier">get</span></span></tt>/<tt class="docutils literal"><span class="pre"><span class="Identifier">put</span></span></tt> procs will then have this additional parameter appended.</p>
 <p>The only exception is the discriminator field for <strong>sum</strong> parsers which is always named <tt class="docutils literal"><span class="pre">disc</span></tt> implicitly; and therefore, only the type must be provided -instead of an expression-colon-expression-.</p>
 
@@ -476,7 +490,7 @@ Input:<ul class="simple"><li><tt class="docutils literal"><span class="pre"><spa
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2023-01-11 15:29:16 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2023-01-11 15:49:09 UTC</small>
       </div>
     </div>
   </div>
