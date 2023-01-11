@@ -11,6 +11,8 @@ jobs:
     container: nimlang/nim
     steps:
       - uses: actions/checkout@v3
+      - name: Change Owner of Container Working Directory
+        run: chown root:root .
       - name: Install dependencies
         run: nimble install -dy
       - name: Generate documentation
