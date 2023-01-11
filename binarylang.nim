@@ -291,7 +291,7 @@
 ##    proc put(s: BitStream, input: Parser, x: int, y: float)
 ##    let parser = (get: get, put: put)
 ##
-## Operations **(experimental)**
+## Operations
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ## Operations can be applied to fields with the following syntax:
 ##

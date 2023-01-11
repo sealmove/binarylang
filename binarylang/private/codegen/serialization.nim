@@ -161,9 +161,10 @@ proc generateWriter*(fields: seq[Field]; fst, pst: seq[string]):
       var
         encoded = genSym(nskVar)
         outputSym = genSym(nskVar)
+      # Loop through all operations backwards except the first one
       for i in countdown(f.ops.len - 1, 1):
         var
-          typeImpl = f.ops[i].typ
+          typeImpl = f.ops[i-1].typ
           write = quote do: `outputSym` = `encoded`
           op = newCall(ident(f.ops[i].name & "put"), write, wSym, encoded)
         result.add(quote do:
