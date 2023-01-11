@@ -22,7 +22,7 @@ proc getImpl*(typ: Type): NimNode {.compileTime.} =
     let sym = ident(typ.symbol.strVal.capitalizeAscii)
     result = quote do: `sym`
 
-proc decodeType*(t: NimNode, opts: Options, prefix: string): Type
+proc decodeType*(t: NimNode, opts: ParserOptions, prefix: string): Type
  {.compileTime.} =
   var t = t
   result = Type()
@@ -161,15 +161,15 @@ proc decodeValue*(node: NimNode, st: var seq[string]): Value {.compileTime.} =
     result.name = node.strVal
     st.add(result.name)
 
-const defaultOptions: Options = (
+const defaultOptions: ParserOptions = (
   endian: bigEndian,
   bitEndian: bigEndian,
   reference: false)
 
 proc decodeHeader*(input: seq[NimNode]):
- tuple[params: seq[NimNode], opts: Options] {.compileTime.} =
+ tuple[params: seq[NimNode], opts: ParserOptions] {.compileTime.} =
   result.opts = defaultOptions
-  var specifiedOpts: set[OptionSet]
+  var specifiedOpts: set[ParserOption]
   for n in input:
     case n.kind
     of nnkExprColonExpr:
@@ -177,7 +177,7 @@ proc decodeHeader*(input: seq[NimNode]):
     of nnkExprEqExpr:
       case n[0].strVal
       of "endian":
-        if osEndian in specifiedOpts:
+        if poEndian in specifiedOpts:
           raise newException(Defect,
             "Option 'endian' was specified more than once")
         case n[1].strVal
@@ -187,9 +187,9 @@ proc decodeHeader*(input: seq[NimNode]):
         else:
           raise newException(Defect,
             "Invalid value for endian option (valid values: l, b)")
-        specifiedOpts.incl osEndian
+        specifiedOpts.incl poEndian
       of "bitEndian":
-        if osBitEndian in specifiedOpts:
+        if poBitEndian in specifiedOpts:
           raise newException(Defect,
             "Option 'bitEndian' was specified more than once")
         case n[1].strVal
@@ -198,9 +198,9 @@ proc decodeHeader*(input: seq[NimNode]):
         else:
           raise newException(Defect,
             "Invalid value for 'bitEndian' option (valid values: n, r)")
-        specifiedOpts.incl osBitEndian
+        specifiedOpts.incl poBitEndian
       of "reference":
-        if osReference in specifiedOpts:
+        if poReference in specifiedOpts:
           raise newException(Defect,
             "Option 'reference' was specified more than once")
         case n[1].strVal
@@ -214,7 +214,7 @@ proc decodeHeader*(input: seq[NimNode]):
     else:
       syntaxError("Invalid header syntax")
 
-proc decodeField*(def: NimNode, st: var seq[string], opts: Options):
+proc decodeField*(def: NimNode, st: var seq[string], opts: ParserOptions):
  Field {.compileTime.} =
   var
     a, b, c: NimNode
@@ -252,7 +252,7 @@ proc decodeField*(def: NimNode, st: var seq[string], opts: Options):
   result.symbol =
     ident(result.val.name)
 
-proc decodeVariation*(def: NimNode, st: seq[string], opts: Options):
+proc decodeVariation*(def: NimNode, st: seq[string], opts: ParserOptions):
  Variation {.compileTime.} =
   def.expectKind(nnkCall)
   var

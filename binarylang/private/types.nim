@@ -1,12 +1,12 @@
 type
-  Options* = tuple
+  ParserOptions* = tuple
     endian: Endianness
     bitEndian: Endianness
     reference: bool
-  OptionSet* = enum
-    osEndian
-    osBitEndian
-    osReference
+  ParserOption* = enum
+    poEndian
+    poBitEndian
+    poReference
   Kind* = enum
     kInt, kUInt, kFloat, kStr, kProduct, kSum
   Type* = object
