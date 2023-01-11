@@ -1,6 +1,8 @@
 v0.7.0 (11 January 2023)
 -------------------------------------------------------------------------------
 - Implemented a plugin system for modular and toggleable codegen
+- Changed ``binarylang/plugins`` to ``binarylang/operations`` to avoid
+  terminology confusion in relation tο the new plugin system
 
 v0.6.0 (11 January 2023)
 -------------------------------------------------------------------------------
