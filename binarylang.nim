@@ -32,6 +32,20 @@
 ##    - *default*: no
 ##    - `y`: yes
 ##    - `n`: no
+## - `plugins`: enable additional codegen features (value is a set)
+##    - `converters`: generate *from* and *to* procs for converting from/to
+##      `string`
+##
+## .. code-block:: nim
+##   struct(data, plugins = {converters}):
+##     8: x
+##
+##   var fileContent = readFile("data/plugins.hex")
+##   let data = fileContent.toData
+##   assert data.x == 0x41
+##
+##   let reparsed = data.fromData
+##   assert reparsed == "A"
 ##
 ## Parser parameters
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
