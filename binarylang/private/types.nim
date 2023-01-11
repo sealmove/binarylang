@@ -1,12 +1,16 @@
 type
+  ParserPlugin* = enum
+    ppConverters = "converters"
   ParserOptions* = tuple
     endian: Endianness
     bitEndian: Endianness
     reference: bool
+    plugins: set[ParserPlugin]
   ParserOption* = enum
     poEndian
     poBitEndian
     poReference
+    poPlugins
   Kind* = enum
     kInt, kUInt, kFloat, kStr, kProduct, kSum
   Type* = object

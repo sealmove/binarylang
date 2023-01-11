@@ -498,15 +498,18 @@ macro struct*(name: untyped, rest: varargs[untyped]): untyped =
     writerProcForwardDecl[3].add p.copyNimTree
     readerProc[3].add p.copyNimTree
     writerProc[3].add p.copyNimTree
-  let (procTo, procFrom) = generateConverters(tname, pname, params, isExported)
   result.add(quote do:
     `readerProcForwardDecl`
     `writerProcForwardDecl`
     let `pdef` = (get: `readerName`, put: `writerName`)
     `readerProc`
-    `writerProc`
-    `procTo`
-    `procFrom`)
+    `writerProc`)
+  if ppConverters in parserOptions.plugins:
+    let (procTo, procFrom) = generateConverters(tname, pname, params, isExported)
+    result.add(quote do:
+      `procTo`
+      `procFrom`)
+
   when defined(BinaryLangEcho):
     echo repr result
 
@@ -730,14 +733,16 @@ macro union*(name, disc: untyped; rest: varargs[untyped]):
     writerProcForwardDecl[3].add p.copyNimTree
     readerProc[3].add p.copyNimTree
     writerProc[3].add p.copyNimTree
-  let (procTo, procFrom) = generateConverters(tname, pname, params, isExported)
   result.add(quote do:
     `readerProcForwardDecl`
     `writerProcForwardDecl`
     let `pdef` = (get: `readerName`, put: `writerName`)
     `readerProc`
-    `writerProc`
-    `procTo`
-    `procFrom`)
+    `writerProc`)
+  if ppConverters in parserOptions.plugins:
+    let (procTo, procFrom) = generateConverters(tname, pname, params, isExported)
+    result.add(quote do:
+      `procTo`
+      `procFrom`)
   when defined(BinaryLangEcho):
     echo repr result

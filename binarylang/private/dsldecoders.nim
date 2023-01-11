@@ -164,7 +164,8 @@ proc decodeValue*(node: NimNode, st: var seq[string]): Value {.compileTime.} =
 const defaultOptions: ParserOptions = (
   endian: bigEndian,
   bitEndian: bigEndian,
-  reference: false)
+  reference: false,
+  plugins: {})
 
 proc decodeHeader*(input: seq[NimNode]):
  tuple[params: seq[NimNode], opts: ParserOptions] {.compileTime.} =
@@ -209,6 +210,13 @@ proc decodeHeader*(input: seq[NimNode]):
         else:
           raise newException(Defect,
             "Invalid value for 'reference' option (valid values: y, n)")
+      of "plugins":
+        if poPlugins in specifiedOpts:
+          raise newException(Defect,
+            "Option 'plugins' was specified more than once")
+        n[1].expectKind(nnkCurly)
+        for id in n[1]:
+          result.opts.plugins.incl(parseEnum[ParserPlugin](id.strVal))
       else:
         raise newException(Defect, &"Unknown option: {$n[0]}")
     else:

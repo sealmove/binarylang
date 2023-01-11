@@ -2,7 +2,7 @@ discard """
   cmd: "nim c -r $file"
 """
 
-import ../binarylang, ../binarylang/plugins
+import ../binarylang, ../binarylang/operations
 
 struct(parser, reference = y):
   u8: hasChild
