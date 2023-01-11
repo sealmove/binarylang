@@ -1,3 +1,14 @@
+v0.6.0 (11 January 2023)
+-------------------------------------------------------------------------------
+- Added ``toStr`` plugin
+- Added cpu endian parser option
+- You can now choose between value or ref semantics with a new parser option
+- Split codebase in multiple source files
+- Removed deprecated procs
+- MagicError is now exported
+- Bugfix: Multiple values in a single union branch selector did not work in the
+  latest Nim compiler
+
 v0.5.1 (8 April 2021)
 -------------------------------------------------------------------------------
 - Bugfix: BinaryLang now correctly uses the alterned type specified by the last
