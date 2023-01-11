@@ -10,21 +10,21 @@ jobs:
     runs-on: ubuntu-latest
     container: nimlang/nim
     steps:
-    - uses: actions/checkout@v2
-    - name: Install dependencies
-      run: nimble install -dy
-    - name: Generate documentation
-      run: |
-        nim doc -o:docs/index.html binarylang.nim
-        nim rst2html docs/tutorial.rst
-        nim rst2html docs/changelog.rst
-        mv docs/htmldocs/* docs/
-        rmdir docs/htmldocs
-    - name: Commit documentation
-      run: |
-        git config --global user.name 'Stefanos Mandalas'
-        git config --global user.email 'sealmove@protonmail.com'
-        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-        git add docs
-        git commit -am "Update documentation"
-        git push
+      - uses: actions/checkout@v3
+      - name: Install dependencies
+        run: nimble install -dy
+      - name: Generate documentation
+        run: |
+          nim doc -o:docs/index.html binarylang.nim
+          nim rst2html docs/tutorial.rst
+          nim rst2html docs/changelog.rst
+          mv docs/htmldocs/* docs/
+          rmdir docs/htmldocs
+      - name: Commit documentation
+        run: |
+          git config --global user.name 'Stefanos Mandalas'
+          git config --global user.email 'sealmove@protonmail.com'
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          git add docs
+          git commit -am "Update documentation"
+          git push
