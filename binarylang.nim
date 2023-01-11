@@ -510,10 +510,6 @@ macro struct*(name: untyped, rest: varargs[untyped]): untyped =
   when defined(BinaryLangEcho):
     echo repr result
 
-macro createParser*(name: untyped, rest: varargs[untyped]): untyped
- {.deprecated: "renamed to 'struct'".} =
-  quote do: struct(`name`, `rest`)
-
 macro union*(name, disc: untyped; rest: varargs[untyped]):
  untyped =
   ## Input:
@@ -745,7 +741,3 @@ macro union*(name, disc: untyped; rest: varargs[untyped]):
     `procFrom`)
   when defined(BinaryLangEcho):
     echo repr result
-
-macro createVariantParser*(name, disc: untyped; rest: varargs[untyped]):
- untyped {.deprecated: "renamed to 'union'".} =
-  quote do: union(`name`, `disc`, `rest`)
