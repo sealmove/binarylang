@@ -377,7 +377,7 @@ import binarylang/private/[types, errors, dsldecoders]
 import binarylang/private/codegen/[serialization, deserialization, conversion]
 import macros, tables, strutils, sugar
 import bitstreams
-export bitstreams
+export bitstreams, MagicError
 
 macro struct*(name: untyped, rest: varargs[untyped]): untyped =
   ## Input:
