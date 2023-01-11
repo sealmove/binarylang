@@ -267,7 +267,7 @@ proc decodeVariation*(def: NimNode, st: seq[string], opts: Options):
     isEmpty = true
   result = Variation(isEmpty: isEmpty, isElseBranch: isElseBranch)
   if not isElseBranch:
-    def[0].expectKind(nnkPar)
+    def[0].expectKind({nnkPar, nnkTupleConstr})
     for c in def[0]:
       cases.add(c.copyNimTree)
     result.cases = cases
