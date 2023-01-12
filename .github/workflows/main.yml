@@ -26,10 +26,8 @@ jobs:
         run: |
           cd tests
           testament pattern "*.nim"
-          cd testresults
           testament html
-          cd ..
-          mv testresults/testresults.html ../docs
+          mv testresults.html ../docs
           find . -maxdepth 1 -type f ! -name '*.nim' -delete
           rm -r testresults
       - name: Commit documentation
