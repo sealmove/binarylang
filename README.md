@@ -12,6 +12,7 @@ using nim templates.
 ## Documentation
 - [Manual](https://sealmove.github.io/binarylang/)
 - [Changelog](https://sealmove.github.io/binarylang/changelog.html)
+- [Test Results](https://sealmove.github.io/binarylang/testresults.html)
 - Tutorials, write-ups, articles
   - [Ajusa on HTTP](https://ajusa.github.io/binarylang-fun/intro.html)
   - [Ajusa on Web Scraping](https://ajusa.github.io/binarylang-fun/scraping.html)
