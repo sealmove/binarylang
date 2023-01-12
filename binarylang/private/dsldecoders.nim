@@ -132,31 +132,41 @@ proc decodeOps*(node: NimNode): Operations {.compileTime.} =
 
 proc decodeValue*(node: NimNode, st: var seq[string]): Value {.compileTime.} =
   var node = node
-  result = Value()
+  result = Value(isExported: true)
   while node.kind != nnkIdent:
-    if node.kind == nnkAsgn:
+    case node.kind
+    of nnkAsgn:
       result.valueExpr = node[1]
       node = node[0]
-    elif node.kind == nnkCurly:
+    of nnkCurly:
       if result.valueExpr != nil:
         raise newException(Defect,
           "Magic and assertion can't be used together in the same field")
       result.isMagic = true
       node = node[0]
-    elif node.kind == nnkBracketExpr:
+    of nnkBracketExpr:
       result.repeat = rFor
       result.repeatExpr = node[1]
       node = node[0]
-    elif node.kind == nnkCurlyExpr:
+    of nnkCurlyExpr:
       result.repeat = rUntil
       result.repeatExpr = node[1]
       node = node[0]
-    elif node.kind == nnkCall:
+    of nnkCall:
       result.sizeExpr = node[1]
       node = node[0]
-    elif node.kind == nnkPrefix:
-      result.isExported = true
-      node = node[1]
+    of nnkPrefix:
+      raise newException(SyntaxError,
+        "Did you use * to export a field? This syntax is deprecated. " &
+        "Fields are exported by default. To make them private use {.private.}")
+    of nnkPragmaExpr:
+      node[1].expectKind(nnkPragma)
+      node[1].expectLen(1)
+      assert node[1][0].strVal == "private"
+      result.isExported = false
+      node = node[0]
+    else:
+      raise newException(SyntaxError, &"Invalid syntax for field value {node.kind}")
   if node.strVal != "_":
     result.name = node.strVal
     st.add(result.name)
@@ -165,7 +175,8 @@ const defaultOptions: ParserOptions = (
   endian: bigEndian,
   bitEndian: bigEndian,
   reference: false,
-  plugins: {})
+  plugins: {},
+  visibility: pvPublic)
 
 proc decodeHeader*(input: seq[NimNode]):
  tuple[params: seq[NimNode], opts: ParserOptions] {.compileTime.} =
@@ -217,6 +228,11 @@ proc decodeHeader*(input: seq[NimNode]):
         n[1].expectKind(nnkCurly)
         for id in n[1]:
           result.opts.plugins.incl(parseEnum[ParserPlugin](id.strVal))
+      of "visibility":
+        if poVisibility in specifiedOpts:
+          raise newException(Defect,
+            "Option 'visibility' was specified more than once")
+        result.opts.visibility = parseEnum[ParserVisibility](n[1].strVal)
       else:
         raise newException(Defect, &"Unknown option: {$n[0]}")
     else:

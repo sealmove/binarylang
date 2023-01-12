@@ -1,16 +1,21 @@
 type
   ParserPlugin* = enum
     ppConverters = "converters"
+  ParserVisibility* = enum
+    pvPublic = "public"
+    pvPrivate = "private"
   ParserOptions* = tuple
     endian: Endianness
     bitEndian: Endianness
     reference: bool
     plugins: set[ParserPlugin]
+    visibility: ParserVisibility
   ParserOption* = enum
     poEndian
     poBitEndian
     poReference
     poPlugins
+    poVisibility
   Kind* = enum
     kInt, kUInt, kFloat, kStr, kProduct, kSum
   Type* = object
