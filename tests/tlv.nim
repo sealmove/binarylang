@@ -4,10 +4,10 @@ discard """
 
 import ../binarylang
 
-union(tlv, *byte):
+union(tlv, byte):
   (0x12): u16: a
   (0x34, 0x56):
-    u32: *b
+    u32: b
     u16: c
   _: nil
 struct(parser):
