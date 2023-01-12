@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Testament Test Results</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.0/jquery.min.js" integrity="sha256-ihAoc6M/JPfrIiIeayPE9xjin4UWjsx2mjW/rtmxLM4=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha256-U5ZEeKfGNOja007MMD3YBI0A3OSZOQbeG6z2f2Y0hu8=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha256-916EbMg70RQy9LHiGkXzG8hSg9EdNy97GazNG/aiY1w=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha256-ZT4HPpdCOt2lvDkXokHuhJfdOKSPFLzeAJik5U/Q+l4=" crossorigin="anonymous" />
+    <script>
+        /**
+        * Callback function that is executed for each Element in an array.
+        * @callback executeForElement
+        * @param {Element} elem Element to operate on
+        */
+
+        /**
+        *
+        * @param {number} index
+        * @param {Element[]} elemArray
+        * @param {executeForElement} executeOnItem
+        */
+        function executeAllAsync(elemArray, index, executeOnItem) {
+            for (var i = 0; index < elemArray.length && i < 100; i++ , index++) {
+                var item = elemArray[index];
+                executeOnItem(item);
+            }
+            if (index < elemArray.length) {
+                setTimeout(executeAllAsync, 0, elemArray, index, executeOnItem);
+            }
+        }
+
+        /** @param {Element} elem */
+        function executeShowOnElement(elem) {
+            while (elem.classList.contains("hidden")) {
+                elem.classList.remove("hidden");
+            }
+        }
+
+        /** @param {Element} elem */
+        function executeHideOnElement(elem) {
+            if (!elem.classList.contains("hidden")) {
+                elem.classList.add("hidden");
+            }
+        }
+
+        /** @param {Element} elem */
+        function executeExpandOnElement(elem) {
+            $(elem).collapse("show");
+        }
+
+        /** @param {Element} elem */
+        function executeCollapseOnElement(elem) {
+            $(elem).collapse("hide");
+        }
+
+        /**
+        * @param {string} [category] Optional bootstrap panel context class (danger, warning, info, success)
+        * @param {executeForElement} executeOnEachPanel
+        */
+        function wholePanelAll(category, executeOnEachPanel) {
+            var selector = "div.panel";
+            if (typeof category === "string" && category) {
+                selector += "-" + category;
+            }
+
+            var jqPanels = $(selector);
+            /** @type {Element[]} */
+            var elemArray = jqPanels.toArray();
+
+            setTimeout(executeAllAsync, 0, elemArray, 0, executeOnEachPanel);
+        }
+
+        /**
+        * @param {string} [category] Optional bootstrap panel context class (danger, warning, info, success)
+        * @param {executeForElement} executeOnEachPanel
+        */
+        function panelBodyAll(category, executeOnEachPanelBody) {
+            var selector = "div.panel";
+            if (typeof category === "string" && category) {
+                selector += "-" + category;
+            }
+
+            var jqPanels = $(selector);
+
+            var jqPanelBodies = $("div.panel-body", jqPanels);
+            /** @type {Element[]} */
+            var elemArray = jqPanelBodies.toArray();
+
+            setTimeout(executeAllAsync, 0, elemArray, 0, executeOnEachPanelBody);
+        }
+
+        /**
+        * @param {string} [category] Optional bootstrap panel context class (danger, warning, info, success)
+        */
+        function showAll(category) {
+            wholePanelAll(category, executeShowOnElement);
+        }
+
+        /**
+        * @param {string} [category] Optional bootstrap panel context class (danger, warning, info, success)
+        */
+        function hideAll(category) {
+            wholePanelAll(category, executeHideOnElement);
+        }
+
+        /**
+        * @param {string} [category] Optional bootstrap panel context class (danger, warning, info, success)
+        */
+        function expandAll(category) {
+            panelBodyAll(category, executeExpandOnElement);
+        }
+
+        /**
+        * @param {string} [category] Optional bootstrap panel context class (danger, warning, info, success)
+        */
+        function collapseAll(category) {
+            panelBodyAll(category, executeCollapseOnElement);
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Testament Test Results <small>Nim Tester</small></h1>
+        <hr />
+        <footer>
+            <p>
+                Report generated by: <code>testament</code> &ndash; Nim Tester
+                <br />
+                Made with Nim. Generated on: 2023-01-12 22:47:54 UTC+00:00
+            </p>
+        </footer>
+    </div>
+</body>
+</html>
