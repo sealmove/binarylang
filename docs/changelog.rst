@@ -1,3 +1,12 @@
+v0.8.1 (18 June 2023)
+-------------------------------------------------------------------------------
+- Added a
+  [developer manual](https://sealmove.github.io/binarylang/devmanual.html).
+
+## Bugfixes
+- [#28](https://github.com/sealmove/binarylang/issues/28) Symbols are now
+  exported, unless ``visibility`` is set to ``private``.
+
 v0.8.0 (12 January 2023)
 -------------------------------------------------------------------------------
 - [Operations](https://sealmove.github.io/binarylang/#extensions-operations)

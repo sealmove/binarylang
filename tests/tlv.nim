@@ -4,7 +4,7 @@ discard """
 
 import ../binarylang
 
-union(tlv, byte):
+union(someTlv, byte):
   (0x12): u16: a
   (0x34, 0x56):
     u32: b
@@ -13,8 +13,8 @@ union(tlv, byte):
 struct(parser):
   u8: code1
   u8: code2
-  +tlv(code1): variant1
-  +tlv(code2): variant2
+  +someTlv(code1): variant1
+  +someTlv(code2): variant2
 
 block:
   var fbs = newFileBitStream("data/aligned.hex")

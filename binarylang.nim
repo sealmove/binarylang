@@ -485,7 +485,8 @@ macro struct*(name: untyped, rest: varargs[untyped]): untyped =
   result.add(
     nnkTypeSection.newTree(
       nnkTypeDef.newTree(
-        tdef,
+        if parserOptions.visibility == pvPublic: postfix(tdef, "*")
+        else: tdef,
         newEmptyNode(),
         if parserOptions.reference: nnkRefTy.newTree(typeBody)
         else: typeBody)))
@@ -508,10 +509,13 @@ macro struct*(name: untyped, rest: varargs[untyped]): untyped =
     writerProcForwardDecl[3].add p.copyNimTree
     readerProc[3].add p.copyNimTree
     writerProc[3].add p.copyNimTree
+  let pdeffinal =
+    if parserOptions.visibility == pvPublic: postfix(pdef, "*")
+    else: pdef
   result.add(quote do:
     `readerProcForwardDecl`
     `writerProcForwardDecl`
-    let `pdef` = (get: `readerName`, put: `writerName`)
+    let `pdeffinal` = (get: `readerName`, put: `writerName`)
     `readerProc`
     `writerProc`)
   if ppConverters in parserOptions.plugins:
@@ -679,7 +683,8 @@ macro union*(name, disc: untyped; rest: varargs[untyped]):
   result.add(
     nnkTypeSection.newTree(
       nnkTypeDef.newTree(
-        tdef,
+        if parserOptions.visibility == pvPublic: postfix(tdef, "*")
+        else: tdef,
         newEmptyNode(),
         if parserOptions.reference: nnkRefTy.newTree(typeBody)
         else: typeBody)))
@@ -739,10 +744,13 @@ macro union*(name, disc: untyped; rest: varargs[untyped]):
     writerProcForwardDecl[3].add p.copyNimTree
     readerProc[3].add p.copyNimTree
     writerProc[3].add p.copyNimTree
+  let pdeffinal =
+    if parserOptions.visibility == pvPublic: postfix(pdef, "*")
+    else: pdef
   result.add(quote do:
     `readerProcForwardDecl`
     `writerProcForwardDecl`
-    let `pdef` = (get: `readerName`, put: `writerName`)
+    let `pdeffinal` = (get: `readerName`, put: `writerName`)
     `readerProc`
     `writerProc`)
   if ppConverters in parserOptions.plugins:
