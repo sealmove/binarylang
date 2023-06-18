@@ -71,10 +71,18 @@ window.addEventListener('DOMContentLoaded', main);
   <div class="container">
     <h1 class="title">docs/devmanual</h1>
     
-<h1 id="examples">Examples</h1><pre class="listing"><span class="Keyword">let</span> <span class="Identifier">x</span> <span class="Operator">=</span> <span class="DecNumber">5</span>
-<span class="Identifier">struct</span><span class="Punctuation">(</span><span class="Identifier">pascalString</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
-  <span class="Identifier">u8</span><span class="Punctuation">:</span> <span class="Identifier">len</span>
-  <span class="Identifier">s</span> <span class="Punctuation">{</span><span class="Operator">@</span><span class="Identifier">hook</span><span class="Punctuation">:</span> <span class="Punctuation">(</span><span class="Identifier">len</span> <span class="Operator">=</span> <span class="Identifier">_</span><span class="Operator">.</span><span class="Identifier">len</span><span class="Punctuation">)</span><span class="Punctuation">}</span><span class="Punctuation">:</span> <span class="Identifier">str</span><span class="Punctuation">(</span><span class="Identifier">len</span><span class="Punctuation">)</span></pre><p>For larger/real-world examples see my <a class="reference external" href="https://github.com/sealmove/n4n6">n4n6 repo</a>.</p>
+<h1 id="examples">Examples</h1><p>For larger/real-world examples see my <a class="reference external" href="https://github.com/sealmove/n4n6">n4n6 repo</a>.</p>
+
+<h1 id="running-the-tests">Running the tests</h1><pre class="listing"><span class="program">cd</span> <span class="option">tests</span>
+<span class="program">testament</span> <span class="option">pattern</span> <span class="option">&quot;*.nim&quot;</span></pre><p>Clean up files produced by testament:</p>
+<pre class="listing"><span class="program">find</span> <span class="Identifier">.</span> <span class="option">-maxdepth</span> <span class="option">1</span> <span class="option">-type</span> <span class="option">f</span> <span class="option">!</span> <span class="option">-name</span> <span class="option">'*.nim'</span> <span class="option">-delete</span>
+<span class="program">rm</span> <span class="option">-r</span> <span class="option">testresults</span></pre>
+<h1 id="releasing-a-new-version">Releasing a new version</h1><ol class="simple"><li>Increment the version in your <tt class="docutils literal"><span class="pre">.nimble</span></tt> file</li>
+<li>Add a new entry in <tt class="docutils literal"><span class="pre">changelog.rst</span></tt></li>
+<li>Commit your changes</li>
+<li>Tag your release (<tt class="docutils literal"><span class="pre">git tag &lt;tagname&gt;</span></tt>)</li>
+<li>Push the new tag and commits (<tt class="docutils literal"><span class="pre">git push origin &lt;tagname&gt;</span></tt>)</li>
+</ol>
 
 
 
@@ -82,7 +90,7 @@ window.addEventListener('DOMContentLoaded', main);
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2023-06-18 09:07:23 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2023-06-18 10:30:53 UTC</small>
       </div>
     </div>
   </div>
