@@ -18,7 +18,6 @@ jobs:
       - name: Generate documentation
         run: |
           nim doc -o:docs/index.html binarylang.nim
-          nim rst2html docs/tutorial.rst
           nim rst2html docs/changelog.rst
           nim rst2html docs/devmanual.rst
           mv docs/htmldocs/* docs/
