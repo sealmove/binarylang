@@ -10,7 +10,8 @@ Moreover, you can mix DSL-generated parsers with custom ones and extend the DSL
 using nim templates.
 
 ## Documentation
-- [Manual](https://sealmove.github.io/binarylang/)
+- [User Manual](https://sealmove.github.io/binarylang/)
+- [Developer Manual](https://sealmove.github.io/binarylang/devmanual.html)
 - [Changelog](https://sealmove.github.io/binarylang/changelog.html)
 - [Test Results](https://sealmove.github.io/binarylang/testresults.html)
 - Tutorials, write-ups, articles
